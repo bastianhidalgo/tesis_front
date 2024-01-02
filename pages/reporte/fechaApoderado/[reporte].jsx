@@ -32,7 +32,6 @@ const ReporteVisitaFechas =({ data }) => {
     personaId:'',
     rut:'',
     nombre:'',
-    rol:''
   }]);    const router = useRouter()
     const [fechaInicio, setFechainicio] = useState();
     const [fechaTermino, setFechatermino] = useState();
@@ -96,20 +95,17 @@ useEffect(() => {
 
                 const respuesta = await clienteAxios.get(`/personas/getone/${ingreso.personaId}`);
 
-              //  console.log(respuesta.data.persona.apoderadoId)
+              // console.log(respuesta.data)
                 const persona=respuesta.data.persona
 
-                const responseRol = await clienteAxios.get(`/rol/getone/${persona.rol}`);
+                
+                if (persona.visitaId==null){
 
-                ingreso.rol=responseRol.data.rol.descripcion
-
-                if (persona.apoderadoId==null){
-
-                    const respuesta = await clienteAxios.get(`/usuarios/getone/${persona.visitaId}`);
+                    const respuesta = await clienteAxios.get(`/apoderados/getone/${persona.apoderadoId}`);
                     //console.log(respuesta.data.visita.rut)
-                    ingreso.rut=respuesta.data.visita.rut
-                    ingreso.nombre=respuesta.data.visita.nombre
-                    ingreso.apellido=respuesta.data.visita.apellido
+                    ingreso.rut=respuesta.data.apoderado.rut
+                    ingreso.nombre=respuesta.data.apoderado.nombre
+                    ingreso.apellido=respuesta.data.apoderado.apellido
 
 }else{
     return null;
@@ -121,8 +117,10 @@ useEffect(() => {
                 return ingreso;
               }
             }))
+            setIngresos(personasConIngreso.filter((ingreso) => ingreso !== null));
 
-            setIngresos(personasConIngreso.filter((ingreso) => ingreso !== null));        
+
+        
          }
          
         
@@ -151,7 +149,7 @@ useEffect(() => {
         alt="Logo"
         style={{marginLeft:50,marginBottom:40}}
       /></HStack>
-    <Heading as={"h1"} className="header" size={"xl"} textAlign="center" mt={10}>Historial de Visitas</Heading>
+    <Heading as={"h1"} className="header" size={"xl"} textAlign="center" mt={10}>Historial de Apoderados</Heading>
     <Drawer
         colorScheme='teal' 
         isOpen={isOpen}
@@ -163,6 +161,7 @@ useEffect(() => {
         <DrawerContent>
           <DrawerCloseButton />
           <DrawerHeader borderBottomWidth='1px'>Menú</DrawerHeader>
+
           <DrawerBody colorScheme='blue'> 
             <Menu >
             <DrawerFooter borderTopWidth='1px'>
@@ -210,7 +209,7 @@ useEffect(() => {
         </HStack>
         </Stack>
 
-        <Heading as={"h1"}  size={"xl"} textAlign="center" mt={10}>Visitas</Heading>
+        <Heading as={"h1"}  size={"xl"} textAlign="center" mt={10}>Apoderados</Heading>
 
         <Stack spacing={4} mt="10">
           <Table variant="simple">
@@ -219,7 +218,6 @@ useEffect(() => {
               <Td fontWeight={"bold"}>Rut</Td>
                 <Td fontWeight={"bold"}>Nombre</Td>
                 <Td fontWeight={"bold"}>Apellido</Td>
-                <Td fontWeight={"bold"}>Rol</Td>
                 <Td fontWeight={"bold"}>Fecha</Td>
                 <Td fontWeight={"bold"}>Hora</Td>
 
@@ -232,7 +230,6 @@ useEffect(() => {
         <Td>{Ingreso.rut}</Td>
         <Td>{Ingreso.nombre}</Td>
         <Td>{Ingreso.apellido}</Td>
-        <Td>{Ingreso.rol}</Td>
 
         <Td>{fechaSplit2(Ingreso.fechaIngreso)}</Td>
         <Td>{horaSplit(Ingreso.fechaIngreso)}</Td>
@@ -252,7 +249,7 @@ useEffect(() => {
        </HStack>
     <HStack style={{marginLeft:1100}}>
         
-        <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../visita_reporte')}>Volver</Button>
+        <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../apoderado_reporte')}>Volver</Button>
     </HStack>
     </Container>
 )}

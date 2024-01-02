@@ -1,16 +1,27 @@
-import React, {useState, useEffect} from 'react'
+import React, {useState, useEffect,useRef} from 'react'
 import { clienteAxios } from '../clienteAxios';
 const { UseRegexRut } = require('../../Components/util');
 import { useRouter } from 'next/router'
-import { Text,FormControl,FormLabel,Image,Button,Container,Heading,HStack, Stack, Table, Thead, Tr, Td,Tbody,Input} from '@chakra-ui/react';
+import { Menu,Drawer,
+  DrawerBody,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,IconButton,VStack,
+  useDisclosure,Text,FormControl,FormLabel,Image,Button,Container,Heading,HStack, Stack, Table, Thead, Tr, Td,Tbody,Input} from '@chakra-ui/react';
 import Swal   from 'sweetalert2'
 import { fechaSplit2,horaSplit,fechaSplit } from '../../Components/util';
+import {HamburgerIcon} from '@chakra-ui/icons'
 
 
 
 const ReporteEvento =() => {
 
+  const [errorFechaInicio, setErrorFechaInicio] = useState('');
 
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const btnRef = useRef();
   const [eventos, setEventos]= useState([{
     id_evento:'',
     tema:'',
@@ -38,20 +49,14 @@ const ReporteEvento =() => {
 
     const handleFechaInicioChange = (event) => {
       setFechainicio(event.target.value);
-      console.log(fechaInicio)
 
     };
-    console.log(fechaSplit(fechaInicio))
   
     const handleFechaTerminoChange = (event) => {
       setFechatermino(event.target.value);
     };
   
-    const handleClickEnviar = () => {
-      // Aquí puedes enviar fechainicio y fechatermino a otro archivo o hacer lo que necesites con ellos
-      console.log('Fecha de Inicio:', fechainicio);
-      console.log('Fecha de Termino:', fechatermino);
-    };
+
       const getEventos = async () => {
         const response = await clienteAxios.get("/eventos/getall");
         if(response.status==200){
@@ -93,16 +98,76 @@ const ReporteEvento =() => {
 
 return (
   <Container maxW="container.xl" mt={10}>
-          <Image
+<HStack>
+       <IconButton
+      icon={<HamburgerIcon />}
+      aria-label="Abrir menú"
+      onClick={onOpen}
+      colorScheme='red'
+    />
+         <Image  mt={10} 
         src='https://www.cspnc.cl/wp-content/uploads/2021/07/logo-cspnc-2021.png'
-        onClick={()=>router.push('../../Home')}
+        onClick={()=>router.push('../Home')}
         boxSize='25%'
         alt="Logo"
-      />
+        style={{marginLeft:50,marginBottom:40}}
+      /></HStack>
     <Stack>
             <center>
             <Heading as="h1" size="xl" className="header" textAlign="center" mt="10">Generar Reporte Evento</Heading>
             </center>
+            <Drawer
+        colorScheme='teal' 
+        isOpen={isOpen}
+        placement='left'
+        onClose={onClose}
+        finalFocusRef={btnRef}
+               >
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader borderBottomWidth='1px'>Menú</DrawerHeader>
+
+          <DrawerBody colorScheme='blue'> 
+            <Menu >
+            <DrawerFooter borderTopWidth='1px'>
+
+    <Button   w="full"  colorScheme='teal' onClick={() => router.push('../Home')}>Inicio</Button>
+        </DrawerFooter>
+        <DrawerFooter borderTopWidth='1px'>
+        <Button   colorScheme='teal' w="full"  onClick={() => router.push('../curso/listado')}>Cursos</Button>
+     </DrawerFooter>
+     <DrawerFooter borderTopWidth='1px'>
+        <Button  colorScheme='teal' w="full"  onClick={() => router.push('../alumno/listado')}>Alumnos</Button>
+        </DrawerFooter>
+        <DrawerFooter borderTopWidth='1px'>
+        
+        <Button  colorScheme='teal' w="full"  onClick={() => router.push('../apoderado/listado')}>Apoderados</Button>
+      
+        </DrawerFooter >
+        <DrawerFooter borderTopWidth='1px'>
+        
+        <Button   colorScheme='teal'  w="full" onClick={() => router.push('../evento')}>Eventos</Button>
+       
+        </DrawerFooter>
+        <DrawerFooter borderTopWidth='1px'>
+       
+        <Button   colorScheme='teal' w="full" onClick={() => router.push('../reporte/menu_reporte')}>Reportes</Button>
+        
+        </DrawerFooter >
+        
+       
+        </Menu>
+
+          </DrawerBody>
+
+          <DrawerFooter borderTopWidth='1px'>
+          <Button style={{marginRight:50}} colorScheme='red' mr={3} onClick={() => router.push('../')}>Cerrar sesión</Button>
+
+            <Button colorScheme='blue' mr={3} onClick={onClose}>Cerrar</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
             </Stack>
 
@@ -111,22 +176,49 @@ return (
         <Heading textAlign="center" as="h4" size="xl" mt="10"  >Por Fecha</Heading>
 
             <HStack style={{marginTop:40}}>
-            <FormControl>
-        <FormLabel>{"Fecha de Inicio"}</FormLabel>
-        <Input value={fechaInicio}  onChange={handleFechaInicioChange} placeholder="Fecha de Inicio" type="date" />
-        </FormControl>
-        <FormControl>
+
+            <FormControl isInvalid={errorFechaInicio !== ''}>
+  <FormLabel>{"Fecha de Inicio"}</FormLabel>
+  <Input
+    value={fechaInicio}
+    onChange={handleFechaInicioChange}
+    placeholder="Fecha de Inicio"
+    type="date"
+  />
+  <Text color="red" fontSize="sm">
+    {errorFechaInicio}
+  </Text>
+</FormControl>
+
+           
+        <FormControl style={{marginBottom:17}}>
         <FormLabel>{"Fecha de Termino (opcional)"}</FormLabel>
         <Input  value={fechaTermino} onChange={handleFechaTerminoChange} placeholder="Fecha de Termino" type="date" />
         </FormControl>
            
         </HStack>
             <HStack style={{marginLeft:1100}}>
-            <Button colorScheme="blue" mt={10} mb={10} 
-            onClick={()=>router.push(`./fechaEvento/${fechaSplit(fechaInicio)}${
-        fechaTermino ? `/${fechaSplit(fechaTermino)}` : ''
-      }`)} >Generar</Button>
-      
+            
+            
+            <Button
+  colorScheme="blue"
+  mt={10}
+  mb={10}
+  onClick={() => {
+    if (!fechaInicio) {
+      setErrorFechaInicio('Por favor, seleccione la fecha de inicio.');
+    } else {
+      setErrorFechaInicio(''); // Reinicia el mensaje de error
+      router.push(`./fechaEvento/${fechaSplit(fechaInicio) + '-' + fechaSplit(fechaTermino)}`);
+    }
+  }}
+>
+  Generar
+</Button>
+
+
+
+            
             </HStack>
             <Heading textAlign="center" as="h4" size="xl"mt="10"   >Por Evento</Heading>
 

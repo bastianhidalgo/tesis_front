@@ -1,5 +1,5 @@
 import { useState, useEffect,useRef } from 'react'
-import {TextForm, InputForm}  from '../../../Components/InputForm'
+import {InputForm} from '../../../Components/InputForm'
 import { Menu,Drawer,
     DrawerBody,
     DrawerFooter,
@@ -7,44 +7,48 @@ import { Menu,Drawer,
     DrawerOverlay,
     DrawerContent,
     DrawerCloseButton,
-    useDisclosure,IconButton,VStack,FormControl,FormLabel,Input,Image,Button, Container, Heading, HStack, Stack } from '@chakra-ui/react'
+    useDisclosure,IconButton,VStack,Image,Button, Container, Heading, HStack, Stack, Select } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import Swal from 'sweetalert2'
 import { clienteAxios } from '../../clienteAxios';
-import { fechaSplit,horaSplit } from '../../../Components/util';
+import { fechaSplit } from '../../../Components/util';
 import {HamburgerIcon} from '@chakra-ui/icons'
 
 
 export const getServerSideProps = async (context)=>{
     const id = context.query.modificar;
-    const response = await clienteAxios.get(`/eventos/getone/${id}`)
+    const response = await clienteAxios.get(`/apoderados/getone/${id}`)
+    const respuesta = await clienteAxios.get(`/personas/getonebyapoderado/${id}`)
     return{
         props: {
-            data: response.data
+            data: response.data,
+            datax: respuesta.data
         }
     }
 }
 
-const EditarEvento =({ data }) => {
-    const [evento, setEvento] = useState(data.evento);
+const Editar =({ data,datax }) => {
+    const [apoderado, setApoderado] = useState(data.apoderado);
+   const [persona,setPersona]=useState(datax.persona[0])
     const router = useRouter()
-    const  eventoo  = router.query
-    const id_evento = router.query.evento;
-    const [hora,setHora]=useState(horaSplit(evento.fecha))
-
     const { isOpen, onOpen, onClose } = useDisclosure()
     const btnRef = useRef();
 
+    //console.log(datax.persona)
+
     const handleChange=(e) =>{
-        setEvento({
-            ...evento,
+        setApoderado({
+            ...apoderado,
             [e.target.name]: e.target.value
         })
     }
-    const InputHandleChange= (event) => {
-        setHora(event.target.value);
-      };
 
+    const handleChangePersona=(e) =>{
+      setPersona({
+          ...persona,
+          [e.target.name]: e.target.value
+      })
+  }
     function contieneLetra(cadena) {
         // Itera sobre cada carácter de la cadena y verifica si es una letra
         for (let i = 0; i < cadena.length; i++) {
@@ -56,43 +60,49 @@ const EditarEvento =({ data }) => {
       }
 
 
-    const submitEvento = async(e) =>{
+    const submitApoderado = async(e) =>{
         e.preventDefault()
         try{
-                evento.fecha=fechaSplit(evento.fecha)+'T'+hora+':00.000Z'
+
+            if(!contieneLetra(persona.fecha_inicio)){
+                persona.fecha_inicio=persona.fecha_inicio+'T00:00:00.000Z'
+            }
+            if(!contieneLetra(persona.fecha_termino)){
+                persona.fecha_termino=persona.fecha_termino+'T00:00:00.000Z'
+            }
+            const response = await clienteAxios.put(`/apoderados/update/${apoderado.id_apoderado}`,apoderado);
             
-            const response = await clienteAxios.put(`/eventos/update/${evento.codigo_evento}`,evento);
-          console.log(evento)
-        if(response.status==200){
+
+            const respuesta = await clienteAxios.put(`/personas/update/${persona.id_persona}`,persona);
+           
+
+        if(response.status==200 && respuesta.status==200){
             Swal.fire({
                 icon:'success',
-                title:'Evento actualizado',
+                title:'Apoderado actualizado',
                 showConfirmButton: true,
-                text: 'El evento se actualizo correctamente'
+                text: 'El apoderado se actualizo correctamente'
             })
-            router.push('../../evento')
+            router.push('../listado')
             }
         }catch(error){
-            console.log("error al actualizar el evento")
+            console.log("error al actualizar la visita")
             console.log(e)
             Swal.fire({
                 icon: 'error',
                 title: 'Oops...',
-                text: 'Error al actualizar el evento',
+                text: 'Error al actualizar la visita',
                 footer: 'Comunicarse con administración'
               })
             }
         }
-        const handleBlur = () => {
-            console.log('Hora actualizada:', hora);
-            setHora(hora);
-          };
+
 
         
 
     return (
     <Container maxW="container.xl" mt={10}>
-                   <HStack>
+                  <HStack>
        <IconButton
       icon={<HamburgerIcon />}
       aria-label="Abrir menú"
@@ -106,8 +116,9 @@ const EditarEvento =({ data }) => {
         alt="Logo"
         style={{marginLeft:50,marginBottom:40}}
       /></HStack>
-    <Heading as={"h1"} className="header" size={"xl"} textAlign="center" mt={10}>Modificar Evento</Heading>
-    <Drawer
+    <Heading as={"h1"} className="header" size={"xl"} textAlign="center" mt={10}>Modificar Apoderado</Heading>
+   
+      <Drawer
         colorScheme='teal' 
         isOpen={isOpen}
         placement='left'
@@ -119,6 +130,7 @@ const EditarEvento =({ data }) => {
           <DrawerCloseButton />
           <DrawerHeader borderBottomWidth='1px'>Menú</DrawerHeader>
 
+    
           <DrawerBody colorScheme='blue'> 
             <Menu >
             <DrawerFooter borderTopWidth='1px'>
@@ -151,7 +163,6 @@ const EditarEvento =({ data }) => {
         </Menu>
 
           </DrawerBody>
-
           <DrawerFooter borderTopWidth='1px'>
           <Button style={{marginRight:50}} colorScheme='red' mr={3} onClick={() => router.push('../../')}>Cerrar sesión</Button>
 
@@ -159,28 +170,28 @@ const EditarEvento =({ data }) => {
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
-
     <Stack spacing={4} mt={10}>
         <HStack>
-        <InputForm label="Tema" handleChange={handleChange}  value={evento.tema} name="tema" placeholder="Rut" type="text"   />
-        <TextForm label="Descripción" handleChange={handleChange} name="descripcion" placeholder="Descripción" type="text"  value={evento.descripcion}/>
+        <InputForm label="Rut" handleChange={handleChange}  value={apoderado.rut} name="rut" placeholder="Rut" type="text"   />
+        <InputForm label="Nombre" handleChange={handleChange} name="nombre" placeholder="Nombre" type="text"  value={apoderado.nombre}/>
         
         </HStack>
-
         <HStack>
-        <InputForm value={fechaSplit(evento.fecha)} label="Fecha " handleChange={handleChange} name="fecha" placeholder="Fecha" type="date" />
-        <FormControl>
-        <FormLabel>{"Hora"}</FormLabel>
-        <Input value={hora} label="Hora" onChange={InputHandleChange} onBlur={handleBlur} placeholder="hora" type="text" />
-        </FormControl>
+        <InputForm value={apoderado.apellido} label="Apellido" handleChange={handleChange} name="apellido" placeholder="Apellido" type="text" />
+        <InputForm value={apoderado.telefono} label="Teléfono" handleChange={handleChange} name="telefono" placeholder="Teléfono" type="text" />
+        </HStack>
+        
+        <HStack>
+        <InputForm value={fechaSplit(persona.fecha_inicio)} label="Fecha inicio " handleChange={handleChangePersona} name="fecha_inicio" placeholder="Fecha inicio rol" type="date" />
+        <InputForm value={fechaSplit(persona.fecha_termino)} label="Fecha termino " handleChange={handleChangePersona} name="fecha_termino" placeholder="Fecha termino rol" type="date" />
         </HStack>
     </Stack>
     <HStack style={{marginLeft:1100}}>
-        <Button colorScheme="blue" mt={10} mb={10} onClick={submitEvento}>Modificar</Button>
-        <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../../evento')}>Volver</Button>
+        <Button colorScheme="blue" mt={10} mb={10} onClick={submitApoderado}>Modificar</Button>
+        <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../listado')}>Volver</Button>
     </HStack>
     </Container>
 )}
 
 
-export default EditarEvento
+export default Editar

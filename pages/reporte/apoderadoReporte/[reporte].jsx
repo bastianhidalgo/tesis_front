@@ -18,7 +18,7 @@ import Apoderado from '@/pages/alumno/listado'
 
 export const getServerSideProps = async (context)=>{
     const id = context.query.reporte;
-    const response = await clienteAxios.get(`/usuarios/getone/${id}`)
+    const response = await clienteAxios.get(`/apoderados/getone/${id}`)
     return{
         props: {
             data: response.data
@@ -28,8 +28,8 @@ export const getServerSideProps = async (context)=>{
 
 const ReporteVisita =({ data }) => {
     const [evento, setEvento] = useState(data.evento);
-    const [visita, setVisita] = useState(data.visita);
-    const [rol, setRol] = useState('');
+    const [apoderado, setApoderado] = useState(data.apoderado);
+    const [rol, setRol] = useState("Apoderado");
     const router = useRouter()
     const btnRef = useRef();
     const { isOpen, onOpen, onClose } = useDisclosure()
@@ -48,20 +48,16 @@ const ReporteVisita =({ data }) => {
 
     useEffect(() => {
       // Verifica que haya información sobre el evento antes de cargar las visitas
-      if (visita) {
+      if (apoderado) {
         const cargarIngresos = async () => {
           try {
 
-            const response = await clienteAxios.get(`/personas/getonebyvisita/${visita.id_visita}`);
+            const response = await clienteAxios.get(`/personas/getonebyapoderado/${apoderado.id_apoderado}`);
             const persona=response.data.persona[0]
-            const rolResponse = await clienteAxios.get(`/rol/getone/${persona.rol}`);
-            setRol(rolResponse.data.rol.descripcion)
-
+            
             const ingresosRespuesta = await clienteAxios.get(`/ingresos/getingresosbypersona/${persona.id_persona}`);
 
                 setIngresos(ingresosRespuesta.data.ingresos)
-            
-            
           } catch (error) {
             console.error('Error al cargar las visitas:', error);
           }
@@ -90,7 +86,7 @@ const ReporteVisita =({ data }) => {
         alt="Logo"
         style={{marginLeft:50,marginBottom:40}}
       /></HStack>
-    <Heading as={"h1"} className="header" size={"xl"} textAlign="center" mt={10}>Visita</Heading>
+    <Heading as={"h1"} className="header" size={"xl"} textAlign="center" mt={10}>Apoderado</Heading>
 
     <Drawer
         colorScheme='teal' 
@@ -146,11 +142,11 @@ const ReporteVisita =({ data }) => {
       </Drawer>
     <Stack spacing={4} mt={10}>
         <HStack>
-        <Text as={"h4"}>Rut: {visita.rut}  </Text>
+        <Text as={"h4"}>Rut: {apoderado.rut}  </Text>
         </HStack>
         <HStack>
 
-        <Text as={"h4"}>Nombre: {visita.nombre} {visita.apellido}</Text>
+        <Text as={"h4"}>Nombre: {apoderado.nombre} {apoderado.apellido}</Text>
 
         </HStack>
         <HStack>
@@ -193,7 +189,7 @@ const ReporteVisita =({ data }) => {
 
     <HStack style={{marginLeft:1100}}>
         
-        <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../visita_reporte')}>Volver</Button>
+        <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../apoderado_reporte')}>Volver</Button>
     </HStack>
     </Container>
 )}

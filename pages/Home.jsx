@@ -13,6 +13,7 @@ import Swal   from 'sweetalert2'
 import {HamburgerIcon} from '@chakra-ui/icons'
 import { fechaSplit2 } from '../Components/util';
 import { format } from 'date-fns';
+import {ComponentDrawer} from '../Components/Drawer'
 
 function Home({ serverDateTime }) {
 
@@ -22,36 +23,55 @@ function Home({ serverDateTime }) {
         nombre: '',
         apellido:'',
         telefono: '',
-        rol: '',
-        fechaInicio: '',
+        rol:'',
+        fechaInicio:'',
         fechaTermino:''
       }]);
+
       const [busqueda, setBusqueda] = useState("");
       const [currentDateTime, setCurrentDateTime] = useState(serverDateTime);
       const [ingreso,setIngreso]= useState({
         fechaIngreso: '',
-        visitaId:''
+        personaId:''
       })
       const [rol,setRol]= useState({
         descripcion:''
       })
-
+      const [horaactual, setHoraactual] = useState('');
         const router = useRouter();
         const { isOpen, onOpen, onClose } = useDisclosure()
         const btnRef = useRef();
 
 
+      
         const getVisitas = async () => {
           try {
             const response = await clienteAxios.get("/usuarios/getall");
+        
             if (response.status === 200) {
               const visitasData = response.data.visitas;
-        
+              setVisitas(visitas)
               const visitasConRoles = await Promise.all(
                 visitasData.map(async (visita) => {
-                  const rolResponse = await clienteAxios.get(`/rol/getone/${visita.rol}`);
-                  visita.rol = rolResponse.data.rol.descripcion;
-                  return visita;
+                  try {
+                    // Obtener información de la persona asociada a la visita
+                    const personaResponse = await clienteAxios.get(`/personas/getonebyvisita/${visita.id_visita}`);
+                    const persona = personaResponse.data.persona[0];
+                    visita.rol=persona.rol;
+                    visita.fechaInicio = persona.fecha_inicio; // Agrega la fecha de inicio a la visita
+                    visita.fechaTermino = persona.fecha_termino; // Agrega la fecha de término a la visita
+                    // Obtener información del rol asociado a la persona
+                    const rolResponse = await clienteAxios.get(`/rol/getone/${persona.rol}`);
+                    const rol = rolResponse.data.rol;
+                    // Agregar información adicional a la visita
+                    visita.rol = rol.descripcion; // Agrega la descripción del rol a la visita
+
+        
+                    return visita;
+                  } catch (error) {
+                    console.error("Error fetching additional data:", error);
+                    return visita;
+                  }
                 })
               );
         
@@ -66,8 +86,9 @@ function Home({ serverDateTime }) {
           const intervalId = setInterval(() => {
             const now = new Date();
             const formattedDateTime = format(now, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"); // Formatear la fecha
-            setCurrentDateTime(formattedDateTime);
-          }, 1000);
+            setHoraactual(formattedDateTime);
+
+          },1000);
           getVisitas();
 
         }, []);
@@ -126,7 +147,7 @@ function Home({ serverDateTime }) {
             }).then(async(result) => {
               if (result.isConfirmed) {
 
-                await clienteAxios.delete(`/usuarios/delete/${e}`)
+                await clienteAxios.delete(`/persona/delete/${e}`)
 
                 Swal.fire(
                   'Borrado!',
@@ -139,30 +160,59 @@ function Home({ serverDateTime }) {
 
           }
 
-          const RegistrarVisita = async(e) => {
+          const RegistrarVisita = async (idVisita) => {
             Swal.fire({
-                title: '¿Seguro?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Sí, registrar'
-              }).then(async(result) => {
-                if (result.isConfirmed) {
-                  ingreso.visitaId=e;
-                  ingreso.fechaIngreso=currentDateTime;
-                  const respuesta= await clienteAxios.post("/ingresos/create",ingreso);
+              title: '¿Seguro?',
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonColor: '#3085d6',
+              cancelButtonColor: '#d33',
+              confirmButtonText: 'Sí, registrar'
+            }).then(async (result) => {
+              if (result.isConfirmed) {
+                // Obtener información de la visita
 
-                  Swal.fire(
-                    'Registrada!',
-                    'Visita ha sido registrada',
-                    'success'
-                  )
-                  getVisitas();
-                }
-              })
 
-            }
+                const response = await clienteAxios.get(`/personas/getonebyvisita/${idVisita}`);
+                const visita = response.data.persona[0];
+               // console.log(response)
+                // Crear una nueva entrada en la tabla de fechas
+                const hora= new Date()
+                const year = hora.getFullYear(); // Año (cuatro dígitos)
+                const month = hora.getMonth() + 1; // Mes (ten en cuenta que los meses en JavaScript van de 0 a 11)
+                const day = hora.getDate(); // Día del mes
+                const hours = hora.getHours(); // Horas (formato de 24 horas)
+                const minutes = hora.getMinutes(); // Minutos
+                const seconds = hora.getSeconds(); // Segundos
+
+                const formattedDateTime = format(hora, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+                setHoraactual(formattedDateTime)
+                //console.log(visita.fecha_inicio)
+                ingreso.fechaIngreso=formattedDateTime
+                ingreso.personaId=visita.id_persona
+             // console.log(ingreso)
+                if((formattedDateTime>=visita.fecha_inicio) && (formattedDateTime<=visita.fecha_termino)){
+                // Crear una nueva entrada en la tabla de ingresos
+                const nuevoIngreso = await clienteAxios.post("/ingresos/create", ingreso);
+                console.log(nuevoIngreso)
+                Swal.fire(
+                  'Registrada!',
+                  'Visita ha sido registrada',
+                  'success'
+                );
+                           // Actualizar la lista de visitas después del registro
+                getVisitas();}
+                else {
+                  Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Error al ingresar la visita.',
+                    footer: ' Revisar fechas de inicio y de término'
+                  })
+                  }
+              }
+            });
+          };
 
 
     return(
@@ -188,48 +238,11 @@ function Home({ serverDateTime }) {
 
 
 
-      <Drawer
-        colorScheme='teal' 
-        isOpen={isOpen}
-        placement='left'
-        onClose={onClose}
-        finalFocusRef={btnRef}
-               >
-        <DrawerOverlay />
-        <DrawerContent>
-          <DrawerCloseButton />
-          <DrawerHeader borderBottomWidth='1px'>Menú</DrawerHeader>
+      <ComponentDrawer isOpen={isOpen} onClose={onClose} btnRef={btnRef} />
 
-          <DrawerBody>
-          <VStack spacing={4} align="stretch">
-          <HStack style={{marginTop:50}}>
-        <Button   colorScheme='teal'  onClick={() => router.push('./apoderado/listado')}>Apoderados</Button>
-        </HStack>
-            <HStack style={{marginTop:50}}>
-        <Button colorScheme='teal'  onClick={() => router.push('./crearVisita')}>Agregar Visita</Button>
-        </HStack>
-        <HStack style={{marginTop:50}}>
-        <Button   colorScheme='teal'  onClick={() => router.push('./QRscanner')}>Registrar Ingreso</Button>
-        </HStack>
-        <HStack style={{marginTop:50}}>
-        <Button   colorScheme='teal'  onClick={() => router.push('./evento')}>Eventos</Button>
-        </HStack>
-        <HStack style={{marginTop:50}}>
-        <Button   colorScheme='teal'  onClick={() => router.push('./reporte/menu_reporte')}>Reportes</Button>
-        </HStack>
-        </VStack>
-          </DrawerBody>
+      <Button colorScheme='blue'  mt="10" onClick={() => router.push('./crearVisita')}>Crear Visita</Button>
 
-          <DrawerFooter borderTopWidth='1px'>
-            <Button colorScheme='blue' mr={3} onClick={onClose}>Cerrar</Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-
-
-        <Heading   size="2xl"  style={{textAlign:'left'}}  mt="10">
-
-        </Heading>
+       
         <Heading textAlign="center" as="h4" size="xl"   mt="10">Listado Visitas</Heading>
 
 

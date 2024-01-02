@@ -1,17 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect,useRef } from 'react';
 import { clienteAxios } from './clienteAxios';
 import { useRouter } from 'next/router'
-import {  Text,useDisclosure,Modal,
+import {  Menu,Drawer,
+  DrawerBody,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  useDisclosure,Text,Modal,HStack,
     ModalOverlay,
     ModalContent,
     ModalHeader,
     ModalFooter,
-    ModalBody,
+    ModalBody,VStack,IconButton,
     ModalCloseButton,Image,Button,Container,Heading, Stack, Table, Thead, Tr, Td,Tbody ,Input} from '@chakra-ui/react';
 import Swal   from 'sweetalert2'
 import { fechaSplit2,horaSplit } from '../Components/util';
+import {HamburgerIcon} from '@chakra-ui/icons'
 
 function Eventos() {
+  const btnRef = useRef();
 
     const [eventos, setEventos]= useState([{
         codigo_evento:'',
@@ -102,13 +111,73 @@ function Eventos() {
 
       <Container  maxW="container.xl" mt={10}>
 
-      <Image
+      <HStack>
+       <IconButton
+      icon={<HamburgerIcon />}
+      aria-label="Abrir menú"
+      onClick={onOpen}
+      colorScheme='red'
+    />
+         <Image  mt={10} 
         src='https://www.cspnc.cl/wp-content/uploads/2021/07/logo-cspnc-2021.png'
         onClick={()=>router.push('./Home')}
         boxSize='25%'
         alt="Logo"
-      />
+        style={{marginLeft:50,marginBottom:40}}
+      /></HStack>
         <Heading  as="h1" size="xl" className="header" textAlign="center" mt="10">Eventos Colegio San Pedro Nolasco Concepción</Heading>
+        <Drawer
+        colorScheme='teal' 
+        isOpen={isOpen}
+        placement='left'
+        onClose={onClose}
+        finalFocusRef={btnRef}
+               >
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader borderBottomWidth='1px'>Menú</DrawerHeader>
+
+          <DrawerBody colorScheme='blue'> 
+            <Menu >
+            <DrawerFooter borderTopWidth='1px'>
+
+    <Button   w="full"  colorScheme='teal' onClick={() => router.push('./Home')}>Inicio</Button>
+        </DrawerFooter>
+        <DrawerFooter borderTopWidth='1px'>
+        <Button   colorScheme='teal' w="full"  onClick={() => router.push('./curso/listado')}>Cursos</Button>
+     </DrawerFooter>
+     <DrawerFooter borderTopWidth='1px'>
+        <Button  colorScheme='teal' w="full"  onClick={() => router.push('./alumno/listado')}>Alumnos</Button>
+        </DrawerFooter>
+        <DrawerFooter borderTopWidth='1px'>
+        
+        <Button  colorScheme='teal' w="full"  onClick={() => router.push('./apoderado/listado')}>Apoderados</Button>
+      
+        </DrawerFooter >
+        <DrawerFooter borderTopWidth='1px'>
+        
+        <Button   colorScheme='teal'  w="full" onClick={() => router.push('./evento')}>Eventos</Button>
+       
+        </DrawerFooter>
+        <DrawerFooter borderTopWidth='1px'>
+       
+        <Button   colorScheme='teal' w="full" onClick={() => router.push('./reporte/menu_reporte')}>Reportes</Button>
+        
+        </DrawerFooter >
+        
+       
+        </Menu>
+
+          </DrawerBody>
+
+          <DrawerFooter borderTopWidth='1px'>
+          <Button style={{marginRight:50}} colorScheme='red' mr={3} onClick={() => router.push('./')}>Cerrar sesión</Button>
+
+            <Button colorScheme='blue' mr={3} onClick={onClose}>Cerrar</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
         <Button colorScheme="blue" mt="10" onClick={() => router.push('./evento/agregarEvento')}>Agregar Evento</Button>
 
         <Heading as="h4" size="xl"  textAlign="center" mt="10">Próximos Eventos</Heading>

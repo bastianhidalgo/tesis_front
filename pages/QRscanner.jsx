@@ -1,15 +1,26 @@
-import React, {useState, useEffect} from 'react'
+import React, {useState, useEffect,useRef} from 'react'
 import { clienteAxios } from './clienteAxios';
 const { GetRut, UseRegexRut } = require('../Components/util');
 import { useRouter } from 'next/router'
-import { Image,Button,Container,Heading,HStack, Stack, Table, Thead, Tr, Td,Tbody ,Textarea, Text,Input} from '@chakra-ui/react';
+import { Drawer,
+  DrawerBody,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  useDisclosure,VStack,IconButton,Image,Button,Container,Heading,HStack, Stack, Table, Thead, Tr, Td,Tbody ,Textarea, Text,Input} from '@chakra-ui/react';
 import  InputForm  from '../Components/InputForm';
 import Swal   from 'sweetalert2'
 import { fechaSplit2 } from '../Components/util';
 import { format } from 'date-fns';
+import {HamburgerIcon} from '@chakra-ui/icons'
 
 
 function QRscanner({ serverDateTime }) {
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const btnRef = useRef();
+
     const [estado, setEstado] = useState('');
     const [rut,setRut]=useState('');
     const [visitas, setVisitas] = useState([]);   
@@ -115,19 +126,70 @@ function QRscanner({ serverDateTime }) {
 
 return (
   <Container maxW="container.xl" mt={10}>
+            <HStack>
+
+     <IconButton
+      icon={<HamburgerIcon />}
+      aria-label="Abrir menú"
+      onClick={onOpen}
+      colorScheme='red'
+    />
           <Image
         src='https://www.cspnc.cl/wp-content/uploads/2021/07/logo-cspnc-2021.png'
         onClick={()=>router.push('./Home')}
         boxSize='25%'
         alt="Logo"
-      />
+        style={{marginLeft:50,marginBottom:40}}
+      />  </HStack>
     <Stack>
             <center>
             <Heading as="h1" size="xl" className="header" textAlign="center" mt="10">Ingrese RUN</Heading>
             </center>
 
             </Stack>
+            <Drawer
+        colorScheme='teal' 
+        isOpen={isOpen}
+        placement='left'
+        onClose={onClose}
+        finalFocusRef={btnRef}
+               >
+        <DrawerOverlay />
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader borderBottomWidth='1px'>Menú</DrawerHeader>
 
+          <DrawerBody>
+          <VStack spacing={4} align="stretch">
+          <HStack style={{marginTop:50}}>
+        <Button   colorScheme='teal'  onClick={() => router.push('./Home')}>Inicio</Button>
+        </HStack>
+        
+          <HStack style={{marginTop:50}}>
+        <Button   colorScheme='teal'  onClick={() => router.push('./curso/listado')}>Cursos</Button>
+        </HStack>
+          <HStack style={{marginTop:50}}>
+        <Button   colorScheme='teal'  onClick={() => router.push('./alumno/listado')}>Alumnos</Button>
+        </HStack>
+          <HStack style={{marginTop:50}}>
+        <Button   colorScheme='teal'  onClick={() => router.push('./apoderado/listado')}>Apoderados</Button>
+        </HStack>
+        <HStack style={{marginTop:50}}>
+        <Button   colorScheme='teal'  onClick={() => router.push('./evento')}>Eventos</Button>
+        </HStack>
+        <HStack style={{marginTop:50}}>
+        <Button   colorScheme='teal'  onClick={() => router.push('./reporte/menu_reporte')}>Reportes</Button>
+        </HStack>
+        </VStack>
+          </DrawerBody>
+
+          <DrawerFooter borderTopWidth='1px'>
+          <Button style={{marginRight:50}} colorScheme='red' mr={3} onClick={() => router.push('./')}>Cerrar sesión</Button>
+
+            <Button colorScheme='blue' mr={3} onClick={onClose}>Cerrar</Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
         <Stack>
         

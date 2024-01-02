@@ -1,7 +1,7 @@
 import { React,useState, useEffect, useRef } from 'react';
 import { clienteAxios } from '../clienteAxios';
 import { useRouter } from 'next/router'
-import {  Drawer,
+import {  Drawer,Menu,
   DrawerBody,
   DrawerFooter,
   DrawerHeader,
@@ -14,104 +14,92 @@ import {  Drawer,
   ModalHeader,
   ModalFooter,
   ModalBody,
-  ModalCloseButton,Menu} from '@chakra-ui/react';
+  ModalCloseButton} from '@chakra-ui/react';
 import Swal   from 'sweetalert2'
 import {HamburgerIcon} from '@chakra-ui/icons'
 import { fechaSplit2 } from '../../Components/util';
 import { format } from 'date-fns';
 
-function Apoderado({ serverDateTime }) {
-  const [horaactual, setHoraactual] = useState('');
-    const [modalAlumnos, setModalAlumnos] = useState([]);
-    const [currentDateTime, setCurrentDateTime] = useState(serverDateTime);
-    const [ingreso,setIngreso]= useState({
-      fechaIngreso: '',
-      personaId:''
-    })
-    const [apoderados, setApoderados]= useState([{
-        id_apoderado:'',
+function Apoderado({  }) {
+    const [modalApoderados, setModalApoderados] = useState([]);
+
+    const [alumnos, setAlumnos]= useState([{
+        id_alumno:'',
         rut:'',
         nombre: '',
         apellido:'',
-        telefono: '',
-        alumnos: [],
+        curso: '',
+        apoderados:[],
       }]);
-      const [alumnos,setAlumnos]=useState([{
-        rut:'',
-        nombre: '',
-        apellido:'',
+      const [cursos, setCursos]= useState([{
+        id_curso:'',
+        nombre:'',
+        descripcion: ''        
       }]);
+
       const [busqueda, setBusqueda] = useState("");
-     
-      const [rol,setRol]= useState({
-        descripcion:''
-      })
+
+
         const btnRef = useRef();
         const { isOpen, onOpen, onClose } = useDisclosure()
         const router = useRouter()
         const [modalStates, setModalStates] = useState([]); 
 
-        const getApoderados = async () => {
+        const getAlumnos = async () => {
             try {
-              const response = await clienteAxios.get("/apoderados/getall");
+              const response = await clienteAxios.get("/alumnos/getall");
               if (response.status === 200) {
-                const apoderadosData = response.data.apoderados;
+                const alumnosData = response.data.alumnos;
+                //console.log(alumnosData)
 
-                // Actualiza el estado de apoderados con la información de los alumnos
-                const apoderadosConAlumnos = await Promise.all(apoderadosData.map(async (apoderado) => {
-                  const responseAlumnos = await clienteAxios.get(`/alumnoApoderado/getAlumnos/${apoderado.id_apoderado}`);
-                  const alumnosIds = responseAlumnos.data.idsAlumnos;
-                  // Obtener detalles de cada alumno
-                  const alumnosDetalles = await Promise.all(alumnosIds.map(async (alumnoId) => {
-                    const responseAlumno = await clienteAxios.get(`/alumnos/getone/${alumnoId}`);
-                    return responseAlumno.data.alumno;
+                const alumnosConApoderados = await Promise.all(alumnosData.map(async (alumno) => {
+                  const responseApoderados = await clienteAxios.get(`/alumnoApoderado/getApoderados/${alumno.id_alumno}`);
+                  const apoderadosIds = responseApoderados.data.idsApoderados;
+                  const responseCursos = await clienteAxios.get(`/cursos/getone/${alumno.cursoId}`);
+                  const cursos = responseCursos.data.curso;
+
+                    setCursos(cursos)
+                    alumno.curso=cursos.nombre
+                  const apoderadosDetalles = await Promise.all(apoderadosIds.map(async (apoderadoId) => {
+                    const responseApoderado = await clienteAxios.get(`/apoderados/getone/${apoderadoId}`);
+                    return responseApoderado.data.apoderado;
                   }));
-          
                   // Agregar la información de los alumnos al apoderado
-                  return { ...apoderado, alumnos: alumnosDetalles };
+                  return { ...alumno, apoderados: apoderadosDetalles };
                 }));
-          
-                setApoderados(apoderadosConAlumnos);
+                setAlumnos(alumnosConApoderados);
               }
             } catch (error) {
               console.error("Error fetching data:", error);
             }
           };
-
+         
         useEffect(() => {
-          const intervalId = setInterval(() => {
-            const now = new Date();
-            const formattedDateTime = format(now, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"); // Formatear la fecha
-            setCurrentDateTime(formattedDateTime);
-          }, 1000);
-          getApoderados();
+  
+          getAlumnos();
 
         }, []);
 
         const filtrar = (terminoBusqueda) => {
-          var resultadosBusqueda = apoderados.filter((apoderado) => {
+          var resultadosBusqueda = alumnos.filter((apoderado) => {
             if (
-                apoderado.nombre
+                alumnos.nombre
                 .toString()
                 .toLowerCase()
                 .includes(terminoBusqueda.toLowerCase()) ||
-                apoderado.apellido
+                alumnos.apellido
                 .toString()
                 .toLowerCase()
                 .includes(terminoBusqueda.toLowerCase()) ||
-                apoderado.telefono
-                .toString()
-                .toLowerCase()
-                .includes(terminoBusqueda.toLowerCase()) ||
-                apoderado.rut
+                alumnos.rut
                 .toString()
                 .toLowerCase()
                 .includes(terminoBusqueda.toLowerCase()) 
             ) {
-              return apoderados;
+              return alumnos;
             }
           });
-          setApoderados(resultadosBusqueda);
+          setAlumnos(resultadosBusqueda);
         };
 
         const handleSearchChange = (e) => {
@@ -119,7 +107,7 @@ function Apoderado({ serverDateTime }) {
           setBusqueda(nuevoTermino);
 
           if (nuevoTermino === "") {
-            getApoderados(); 
+            getAlumnos(); 
           } else {
             filtrar(nuevoTermino);
           }
@@ -138,19 +126,19 @@ function Apoderado({ serverDateTime }) {
             }).then(async(result) => {
               if (result.isConfirmed) {
 
-                await clienteAxios.delete(`/apoderados/delete/${e}`)
+                await clienteAxios.delete(`/alumnos/delete/${e}`)
 
                 Swal.fire(
                   'Borrado!',
-                  'Apoderado ha sido borrado',
+                  'Visita ha sido borrada',
                   'success'
                 )
-                getApoderados();
+                getAlumnos();
               }
             })
 
           }
-          const openModal = (index) => {
+          /*const openModal = (index) => {
             console.log('Datos del apoderado:', apoderados[index]); // Agrega esta línea
             setModalAlumnos(apoderados[index]?.alumnos || []);
             const newModalStates = [...modalStates];
@@ -159,53 +147,42 @@ function Apoderado({ serverDateTime }) {
           };
           const closeModal = () => {
             setModalStates(modalStates.map(() => false));
+          };*/
+          const openModal = (index) => {
+            console.log('Datos del alumno:', alumnos[index]); // Agrega esta línea
+            setModalApoderados(alumnos[index]?.apoderados || []);
+            const newModalStates = [...modalStates];
+            newModalStates[index] = true;
+            setModalStates(newModalStates);
+          };
+          const closeModal = () => {
+            setModalStates(modalStates.map(() => false));
           };
 
-          const RegistrarVisita = async (idVisita) => {
+          const RegistrarVisita = async(e) => {
             Swal.fire({
-              title: '¿Seguro?',
-              icon: 'warning',
-              showCancelButton: true,
-              confirmButtonColor: '#3085d6',
-              cancelButtonColor: '#d33',
-              confirmButtonText: 'Sí, registrar'
-            }).then(async (result) => {
-              if (result.isConfirmed) {
-                // Obtener información de la visita
+                title: '¿Seguro?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, registrar'
+              }).then(async(result) => {
+                if (result.isConfirmed) {
+                  ingreso.visitaId=e;
+                  ingreso.fechaIngreso=currentDateTime;
+                  const respuesta= await clienteAxios.post("/ingresos/create",ingreso);
 
+                  Swal.fire(
+                    'Registrada!',
+                    'Visita ha sido registrada',
+                    'success'
+                  )
+                  getAlumnos();
+                }
+              })
 
-                const response = await clienteAxios.get(`/personas/getonebyapoderado/${idVisita}`);
-                console.log(response)
-
-                const visita = response.data.persona[0];
-                // Crear una nueva entrada en la tabla de fechas
-                const hora= new Date()
-                const year = hora.getFullYear(); // Año (cuatro dígitos)
-                const month = hora.getMonth() + 1; // Mes (ten en cuenta que los meses en JavaScript van de 0 a 11)
-                const day = hora.getDate(); // Día del mes
-                const hours = hora.getHours(); // Horas (formato de 24 horas)
-                const minutes = hora.getMinutes(); // Minutos
-                const seconds = hora.getSeconds(); // Segundos
-
-                const formattedDateTime = format(hora, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-                setHoraactual(formattedDateTime)
-                
-                ingreso.fechaIngreso=formattedDateTime
-                ingreso.personaId=visita.id_persona
-              console.log(ingreso)
-
-                // Crear una nueva entrada en la tabla de ingresos
-                const nuevoIngreso = await clienteAxios.post("/ingresos/create", ingreso);
-                Swal.fire(
-                  'Registrada!',
-                  'Apoderado ha sido registrada',
-                  'success'
-                );
-          
-                getApoderados(); // Actualizar la lista de visitas después del registro
-              }
-            });
-          };
+            }
 
 
     return(
@@ -226,10 +203,9 @@ function Apoderado({ serverDateTime }) {
         style={{marginLeft:50,marginBottom:40}}
       /></HStack>
       <Box>
-      <Heading  as="h1" size="xl" className="header" textAlign="center"mt="10" >Apoderados CSPN Concepción</Heading>
+      <Heading  as="h1" size="xl" className="header" textAlign="center"mt="10" >Alumnos CSPN Concepción</Heading>
       </Box>
 
-      <Button   colorScheme='blue' mt="10" onClick={() => router.push('./crearApoderado')}>Crear Apoderado</Button>
 
 
       <Drawer
@@ -276,6 +252,7 @@ function Apoderado({ serverDateTime }) {
         </Menu>
 
           </DrawerBody>
+
           <DrawerFooter borderTopWidth='1px'>
           <Button style={{marginRight:50}} colorScheme='red' mr={3} onClick={() => router.push('../../')}>Cerrar sesión</Button>
 
@@ -285,10 +262,7 @@ function Apoderado({ serverDateTime }) {
       </Drawer>
 
 
-        <Heading   size="2xl"  style={{textAlign:'left'}}  mt="10">
-
-        </Heading>
-        <Heading textAlign="center" as="h4" size="xl"   mt="10">Listado Apoderados</Heading>
+        <Heading textAlign="center" as="h4" size="xl"   mt="10">Listado Alumnos</Heading>
 
 
           <div style={{marginTop:30}}>
@@ -309,38 +283,40 @@ function Apoderado({ serverDateTime }) {
               <Td fontWeight={"bold"}>RUN</Td>
                 <Td fontWeight={"bold"}>Nombre</Td>
                 <Td fontWeight={"bold"}>Apellido</Td>
-                <Td fontWeight={"bold"}>Teléfono</Td>
-                <Td fontWeight={"bold"}>Ver Alumno(s)</Td>
-                <Td fontWeight={"bold"}>Registrar Ingreso</Td>
-                <Td fontWeight={"bold"}>Modificar</Td>
-                <Td fontWeight={"bold"}>Eliminar</Td>
+                <Td fontWeight={"bold"}>Curso</Td>
+
+                <Td fontWeight={"bold"}>Ver Apoderado(s)</Td>
               </Tr>
             </Thead>
             <Tbody border={"5"}>
   
-            {apoderados && apoderados.length  > 0 ? (
-            apoderados.map((Apoderado,idx)=>
+            {alumnos && alumnos.length  > 0 ? (
+            alumnos.map((Alumno,idx)=>
               (
                 <Tr key={idx}>
-             <Td >{Apoderado.rut}</Td>
-             <Td >{Apoderado.nombre}</Td>
-             <Td>{Apoderado.apellido}</Td>
-             <Td>{Apoderado.telefono}</Td>
+             <Td >{Alumno.rut}</Td>
+             <Td >{Alumno.nombre}</Td>
+             <Td>{Alumno.apellido}</Td>
+             <Td>{Alumno.curso}</Td>
+
              <Td>
 
-             <Button colorScheme="blue" onClick={() => openModal(idx)}>Alumnos</Button>
+             <Button colorScheme="blue" onClick={() => openModal(idx)}>Apoderado</Button>
 
                 <Modal closeOnOverlayClick={false} isOpen={modalStates[idx]} onClose={closeModal}>
                     <ModalOverlay />
                     <ModalContent>
-                    <ModalHeader>                    <Heading size="md">Alumno(s) asociados al apoderado:</Heading>
+                    <ModalHeader>                    <Heading size="md">Apoderado(s) asociados al alumno:</Heading>
                     </ModalHeader>
                     <ModalCloseButton />
-                    <ModalBody pb={6}>
-                    {modalAlumnos.map((alumno, idxAlumno) => (
-                        <VStack key={idxAlumno} align="stretch" mt={4}>
-                        <Text>Nombre: {alumno.nombre} {alumno.apellido}</Text>
-                        <Text>Rut: {alumno.rut}</Text>
+                    <ModalBody pb={3}>
+                    {modalApoderados.map((apoderado, idxApoderado) => (
+                        <VStack key={idxApoderado} align="stretch" mt={4}>
+                        <Text>Nombre: {apoderado.nombre}</Text>
+                        <Text>Apellido: {apoderado.apellido}</Text>
+                        <Text>Rut: {apoderado.rut}</Text>
+                        <Text>Teléfono: {apoderado.telefono}</Text>
+
                         </VStack>
                     ))}
                     </ModalBody>
@@ -350,18 +326,9 @@ function Apoderado({ serverDateTime }) {
                     </ModalFooter>
                     </ModalContent>
                 </Modal></Td>
-             <Td>
-             <Button    onClick={()=>RegistrarVisita(Apoderado.id_apoderado)}>Registrar</Button>
-            </Td>
-             <Td>
-
-              <Button colorScheme="green"   onClick={()=>router.push(`./modificar/${Apoderado.id_apoderado}`)}>Modificar</Button>
-              </Td>
-              <Td>
-
-              <Button colorScheme="red" onClick={()=>deleteVisita(Apoderado.id_apoderado)} style={{marginLeft:10}}  >Eliminar</Button>
-
- </Td>
+            
+            
+              
 
      </Tr>
 )
@@ -369,7 +336,7 @@ function Apoderado({ serverDateTime }) {
 ): (
   <Tr>
     <Td colSpan={9} textAlign="center">
-      No hay apoderados registrados.
+      No hay alumnos registrados.
     </Td>
   </Tr>
 )

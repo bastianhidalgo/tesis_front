@@ -11,24 +11,22 @@ import { Menu,Drawer,
   DrawerCloseButton,
   useDisclosure,IconButton,VStack,Text,FormControl,FormLabel,Image,Button,Container,Heading,HStack, Stack, Table, Thead, Tr, Td,Tbody ,Input} from '@chakra-ui/react';
 import Swal   from 'sweetalert2'
-import { fechaSplit2,fechaSplit } from '../../Components/util';
+import { fechaSplit2,horaSplit,fechaSplit } from '../../Components/util';
 import {HamburgerIcon} from '@chakra-ui/icons'
 
 
 
-const ReporteVisita =() => {
-
+const ReporteApoderado =() => {
   const [errorFechaInicio, setErrorFechaInicio] = useState('');
 
-  const [fechaInicio,setFechainicio]=useState('');
-  const [fechaTermino,setFechatermino]=useState('');
-  const [visitas, setVisitas]= useState([{
-    id_visita:'',
+    const [fechaInicio,setFechainicio]=useState('');
+    const [fechaTermino,setFechatermino]=useState('');
+  const [apoderados, setApoderados]= useState([{
+    id_apoderado:'',
     rut:'',
     nombre: '',
     apellido:'',
     telefono: '',
-    rol: '',
     fechaInicio: '',
     fechaTermino:''
   }]);
@@ -38,7 +36,6 @@ const ReporteVisita =() => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const btnRef = useRef();
 
-
   const handleFechaInicioChange = (event) => {
     setFechainicio(event.target.value);
 
@@ -47,39 +44,37 @@ const ReporteVisita =() => {
   const handleFechaTerminoChange = (event) => {
     setFechatermino(event.target.value);
   };
-  const getVisitas = async () => {
+  const getApoderados = async () => {
     try {
-      const response = await clienteAxios.get("/usuarios/getall");
-  
+      const response = await clienteAxios.get("/apoderados/getall");
+        console.log(response.status)
       if (response.status === 200) {
-        const visitasData = response.data.visitas;
-        //setVisitas(visitas)
-        const visitasConRoles = await Promise.all(
-          visitasData.map(async (visita) => {
+        const apoderadosData = response.data.apoderados;
+        //setApoderados(apoderados)
+        const apoderadosConRoles = await Promise.all(
+          apoderadosData.map(async (apoderado) => {
             try {
               // Obtener información de la persona asociada a la visita
-              const personaResponse = await clienteAxios.get(`/personas/getonebyvisita/${visita.id_visita}`);
+              const personaResponse = await clienteAxios.get(`/personas/getonebyapoderado/${apoderado.id_apoderado}`);
               const persona = personaResponse.data.persona[0];
-              visita.rol=persona.rol;
-              visita.fechaInicio = persona.fecha_inicio; // Agrega la fecha de inicio a la visita
-              visita.fechaTermino = persona.fecha_termino; // Agrega la fecha de término a la visita
+              apoderado.fechaInicio = persona.fecha_inicio; // Agrega la fecha de inicio a la visita
+              apoderado.fechaTermino = persona.fecha_termino; // Agrega la fecha de término a la visita
               // Obtener información del rol asociado a la persona
-              const rolResponse = await clienteAxios.get(`/rol/getone/${persona.rol}`);
-              const rol = rolResponse.data.rol;
+
               // Agregar información adicional a la visita
-              visita.rol = rol.descripcion; // Agrega la descripción del rol a la visita
+              apoderado.rol = "Apoderado"; // Agrega la descripción del rol a la visita
 
   
-              return visita;
+              return apoderado;
             } catch (error) {
               console.error("Error fetching additional data:", error);
-              return visita;
+              return apoderado;
             }
           })
         );
        
           
-       setVisitas( visitasConRoles);
+       setApoderados( apoderadosConRoles);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -87,34 +82,34 @@ const ReporteVisita =() => {
   };
 
     useEffect(() => {
-      getVisitas()
+      getApoderados()
     },[])
     const router = useRouter()
 
     const filtrar = (terminoBusqueda) => {
-      var resultadosBusqueda = visitas.filter((visita) => {
+      var resultadosBusqueda = apoderados.filter((apoderado) => {
         if (
-          visita.nombre
+            apoderado.nombre
             .toString()
             .toLowerCase()
             .includes(terminoBusqueda.toLowerCase()) ||
-          visita.apellido
+            apoderado.apellido
             .toString()
             .toLowerCase()
             .includes(terminoBusqueda.toLowerCase()) ||
-          visita.telefono
+            apoderado.telefono
             .toString()
             .toLowerCase()
             .includes(terminoBusqueda.toLowerCase()) ||
-          visita.rut
+            apoderado.rut
             .toString()
             .toLowerCase()
             .includes(terminoBusqueda.toLowerCase())
         ) {
-          return visitas;
+          return apoderados;
         }
       });
-      setVisitas(resultadosBusqueda);
+      setApoderados(resultadosBusqueda);
     };
 
     const handleSearchChange = (e) => {
@@ -172,7 +167,7 @@ return (
       /></HStack>
     <Stack>
             <center>
-            <Heading as="h1" size="xl" className="header" textAlign="center" mt="10">Generar Reporte Visita</Heading>
+            <Heading as="h1" size="xl" className="header" textAlign="center" mt="10">Generar Reporte Apoderado</Heading>
             </center>
             <Drawer
         colorScheme='teal' 
@@ -232,7 +227,7 @@ return (
         <Stack>
         <Heading textAlign="center" as="h4" size="xl" mt="10"  >Por Fecha</Heading>
 
-            <HStack style={{marginTop:40}}>
+        <HStack style={{marginTop:40}}>
             <FormControl isInvalid={errorFechaInicio !== ''}>
   <FormLabel>{"Fecha de Inicio"}</FormLabel>
   <Input
@@ -262,15 +257,14 @@ return (
       setErrorFechaInicio('Por favor, seleccione la fecha de inicio.');
     } else {
       setErrorFechaInicio(''); // Reinicia el mensaje de error
-      router.push(`./fechaVisita/${fechaSplit(fechaInicio) + '-' + fechaSplit(fechaTermino)}`);
+      router.push(`./fechaApoderado/${fechaSplit(fechaInicio) + '-' + fechaSplit(fechaTermino)}`);
     }
   }}
 >
   Generar
 </Button>
-
             </HStack>
-            <Heading textAlign="center" as="h4" size="xl"   >Por Visita</Heading>
+            <Heading textAlign="center" as="h4" size="xl"   >Por Apoderado</Heading>
 
             <HStack>
 
@@ -292,7 +286,6 @@ return (
                 <Td fontWeight={"bold"}>Nombre</Td>
                 <Td fontWeight={"bold"}>Apellido</Td>
                 <Td fontWeight={"bold"}>Teléfono</Td>
-                <Td fontWeight={"bold"}>Rol</Td>
                 <Td fontWeight={"bold"}>Fecha de Inicio</Td>
                 <Td fontWeight={"bold"}>Fecha de Término</Td>
                 <Td fontWeight={"bold"}>Generar Reporte</Td>
@@ -300,19 +293,18 @@ return (
               </Tr>
             </Thead>
             <Tbody border={"5"}>
-  {visitas && visitas.length > 0 ? (
-visitas.map((Visita,idx)=>
+  {apoderados && apoderados.length > 0 ? (
+apoderados.map((Apoderado,idx)=>
   (
     <Tr key={idx}>
-             <Td >{Visita.rut}</Td>
-             <Td >{Visita.nombre}</Td>
-             <Td>{Visita.apellido}</Td>
-             <Td>{Visita.telefono}</Td>
-             <Td>{Visita.rol}</Td>
-             <Td>{fechaSplit2(Visita.fechaInicio)}</Td>
-             <Td>{fechaSplit2(Visita.fechaTermino)}</Td>
+             <Td >{Apoderado.rut}</Td>
+             <Td >{Apoderado.nombre}</Td>
+             <Td>{Apoderado.apellido}</Td>
+             <Td>{Apoderado.telefono}</Td>
+             <Td>{fechaSplit2(Apoderado.fechaInicio)}</Td>
+             <Td>{fechaSplit2(Apoderado.fechaTermino)}</Td>
              <Td>
-              <Button colorScheme="blue"   onClick={()=>router.push(`./visitaReporte/${Visita.id_visita}`)}>Generar</Button>
+              <Button colorScheme="blue"   onClick={()=>router.push(`./apoderadoReporte/${Apoderado.id_apoderado}`)}>Generar</Button>
             </Td>
 
      </Tr>
@@ -320,7 +312,7 @@ visitas.map((Visita,idx)=>
 ): (
   <Tr>
     <Td colSpan={9} textAlign="center">
-      No hay visitas registradas.
+      No hay apoderados registrados.
     </Td>
   </Tr>
 )
@@ -342,4 +334,4 @@ visitas.map((Visita,idx)=>
 
         }
 
-export default ReporteVisita;
+export default ReporteApoderado;

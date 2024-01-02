@@ -51,10 +51,11 @@ function horaSplit(req){
 //2023-11-09T18:31:27.616Z
 
 
+
 module.exports={
     GetRut,
     UseRegexRut,
     fechaSplit,
     fechaSplit2,
-    horaSplit
+    horaSplit,
 }

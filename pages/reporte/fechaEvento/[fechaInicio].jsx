@@ -1,5 +1,4 @@
 import { useState, useEffect,useRef } from 'react'
-import {InputForm} from '../../../Components/InputForm'
 import { Menu,Drawer,
   DrawerBody,
   DrawerFooter,
@@ -9,74 +8,97 @@ import { Menu,Drawer,
   DrawerCloseButton,IconButton,VStack,
   useDisclosure,Image,Button, Container, Heading, HStack, Stack, Select, Text,Table,Thead,Tr,Td,Tbody } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
-import Swal from 'sweetalert2'
 import { clienteAxios } from '../../clienteAxios';
 import { fechaSplit2, horaSplit } from '../../../Components/util';
 import {HamburgerIcon} from '@chakra-ui/icons'
-import Apoderado from '@/pages/alumno/listado'
 
 
 export const getServerSideProps = async (context)=>{
-    const id = context.query.reporte;
-    const response = await clienteAxios.get(`/usuarios/getone/${id}`)
-    return{
-        props: {
-            data: response.data
-        }
-    }
+  const fecha = context.query.fechaInicio;
+ // const response = await clienteAxios.get(`/usuarios/getone/${id}`)
+  return{
+      props: {
+          data: fecha
+      }
+  }
 }
 
-const ReporteVisita =({ data }) => {
-    const [evento, setEvento] = useState(data.evento);
-    const [visita, setVisita] = useState(data.visita);
-    const [rol, setRol] = useState('');
-    const router = useRouter()
-    const btnRef = useRef();
+
+
+const ReporteEventoFechas =({ data }) => {
+  const [eventos, setEventos]= useState([{
+    id_evento:'',
+    tema:'',
+    descripcion: '',
+    fechaEvento:''
+  }]);    const router = useRouter()
+    const [fechaInicio, setFechainicio] = useState();
+    const [fechaTermino, setFechatermino] = useState();
     const { isOpen, onOpen, onClose } = useDisclosure()
-    const [ingresos, setIngresos]= useState([{
-      personaId:'',
-      fecha:''
-    }]);
+    const btnRef = useRef();
 
-    const [personas,setPersonas]=useState([{
-      id_persona:'',
-      visitaId:'',
-      rol:'',
-      fechaInicio:'',
-      fechaTermino:''
-    }])
+  const validarFecha = () => {
+    if ((data) ) {
+      const fechas = data.split('-');
+      if (fechas.length === 6) {
+        setFechainicio(fechas[2]+'-'+fechas[1]+'-'+fechas[0]);
+       // fechaInicio=fechas[2]+'-'+fechas[1]+'-'+fechas[0];
+        setFechatermino(fechas[5]+'-'+fechas[4]+'-'+fechas[3]);
+       }
+      if (fechas.length === 4) {
+        setFechainicio(fechas[2]+'-'+fechas[1]+'-'+fechas[0]);
+        setFechatermino('');
+      } 
+    }
+  };
 
-    useEffect(() => {
-      // Verifica que haya información sobre el evento antes de cargar las visitas
-      if (visita) {
-        const cargarIngresos = async () => {
-          try {
+useEffect(() => {
+  validarFecha()
+  }, []);
 
-            const response = await clienteAxios.get(`/personas/getonebyvisita/${visita.id_visita}`);
-            const persona=response.data.persona[0]
-            const rolResponse = await clienteAxios.get(`/rol/getone/${persona.rol}`);
-            setRol(rolResponse.data.rol.descripcion)
+  useEffect(() => {
+    // Verifica que haya información sobre el evento antes de cargar las visitas
 
-            const ingresosRespuesta = await clienteAxios.get(`/ingresos/getingresosbypersona/${persona.id_persona}`);
-
-                setIngresos(ingresosRespuesta.data.ingresos)
-            
-            
-          } catch (error) {
-            console.error('Error al cargar las visitas:', error);
+      const cargarEventos = async () => {
+        try {    
+          let fecha_inicio;
+          let fecha_termino;
+          if ((data) ) {
+            const fechas = data.split('-');
+            if (fechas.length === 6) {
+               fecha_inicio=(fechas[0]+'-'+fechas[1]+'-'+fechas[2]);
+               fecha_termino=(fechas[3]+'-'+fechas[4]+'-'+fechas[5]);
+             }
+            if (fechas.length === 4) {
+               fecha_inicio=(fechas[0]+'-'+fechas[1]+'-'+fechas[2]);
+              fecha_termino=null
+            } 
           }
+
+         // /eventos/getallbydate/2023-11-01/
+         if (fecha_termino===null){
+          const response = await clienteAxios.get(`/eventos/getallbydate/${fecha_inicio}`);
+          // Realiza una sola solicitud para obtener información adicional de todas las visitas
+         setEventos(response.data.eventos)
+         }
+         else{
+          const response = await clienteAxios.get(`/eventos/getallbydate/${fecha_inicio}/${fecha_termino}`);
+          // Realiza una sola solicitud para obtener información adicional de todas las visitas
+         setEventos(response.data.eventos)
+         }
+        
+        } catch (error) {
+          console.error('Error al cargar los eventos:', error);
         }
-      ;
-    
-        cargarIngresos();
-      }
-    }, []);
-    
+      };
+      cargarEventos();
+  
+  }, []);
 
 
     return (
     <Container maxW="container.xl" mt={10}>
-                     <HStack>
+                <HStack>
        <IconButton
       icon={<HamburgerIcon />}
       aria-label="Abrir menú"
@@ -90,8 +112,7 @@ const ReporteVisita =({ data }) => {
         alt="Logo"
         style={{marginLeft:50,marginBottom:40}}
       /></HStack>
-    <Heading as={"h1"} className="header" size={"xl"} textAlign="center" mt={10}>Visita</Heading>
-
+    <Heading as={"h1"} className="header" size={"xl"} textAlign="center" mt={10}>Historial de Eventos</Heading>
     <Drawer
         colorScheme='teal' 
         isOpen={isOpen}
@@ -146,57 +167,49 @@ const ReporteVisita =({ data }) => {
       </Drawer>
     <Stack spacing={4} mt={10}>
         <HStack>
-        <Text as={"h4"}>Rut: {visita.rut}  </Text>
+        <Text as={"h4"}>Fecha Inicio: {(fechaInicio)} </Text>
+        <Text as={"h4"} style={{marginLeft:500}} >Fecha Término: {(fechaTermino)} </Text>
         </HStack>
-        <HStack>
-
-        <Text as={"h4"}>Nombre: {visita.nombre} {visita.apellido}</Text>
-
-        </HStack>
-        <HStack>
-        <Text as={"h4"}>Rol: {rol} </Text>
-        </HStack>
-      
         </Stack>
 
-        <Heading as={"h1"}  size={"xl"} textAlign="center" mt={10}>Ingresos</Heading>
+        <Heading as={"h1"}  size={"xl"} textAlign="center" mt={10}>Eventos</Heading>
 
         <Stack spacing={4} mt="10">
           <Table variant="simple">
             <Thead>
               <Tr>
-              <Td fontWeight={"bold"}>N°</Td>
+              <Td fontWeight={"bold"}>Tema</Td>
                 <Td fontWeight={"bold"}>Fecha</Td>
                 <Td fontWeight={"bold"}>Hora</Td>
               </Tr>
             </Thead>
             <Tbody border={"5"}>
-  {ingresos && ingresos.length > 0 ? (
-    ingresos.map((Ingreso, idx) => (
+  {eventos && eventos.length > 0 ? (
+    eventos.map((Evento, idx) => (
       <Tr key={idx}>
-        <Td>{idx+1}</Td>
-        <Td>{fechaSplit2(Ingreso.fechaIngreso)}</Td>
-        <Td>{horaSplit(Ingreso.fechaIngreso)}</Td>
-
+        <Td>{Evento.tema}</Td>
+        <Td>{fechaSplit2(Evento.fecha)}</Td>
+        <Td>{horaSplit(Evento.fecha)}</Td>
       </Tr>
     ))
   ) : (
     <Tr>
       <Td colSpan={4} textAlign="center">
-        No hay ingresos registrados.
+        No hay eventos registrados.
       </Td>
     </Tr>
   )}
 </Tbody>
           </Table>
         </Stack>
-
+        <HStack>
+       </HStack>
     <HStack style={{marginLeft:1100}}>
         
-        <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../visita_reporte')}>Volver</Button>
+        <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../evento_reporte')}>Volver</Button>
     </HStack>
     </Container>
 )}
 
 
-export default ReporteVisita
+export default ReporteEventoFechas
