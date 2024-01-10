@@ -50,33 +50,47 @@ function Apoderado({ serverDateTime }) {
         const { isOpen, onOpen, onClose } = useDisclosure()
         const router = useRouter()
         const [modalStates, setModalStates] = useState([]); 
-
         const getApoderados = async () => {
-            try {
-              const response = await clienteAxios.get("/apoderados/getall");
-              if (response.status === 200) {
-                const apoderadosData = response.data.apoderados;
-
-                // Actualiza el estado de apoderados con la información de los alumnos
-                const apoderadosConAlumnos = await Promise.all(apoderadosData.map(async (apoderado) => {
-                  const responseAlumnos = await clienteAxios.get(`/alumnoApoderado/getAlumnos/${apoderado.id_apoderado}`);
-                  const alumnosIds = responseAlumnos.data.idsAlumnos;
-                  // Obtener detalles de cada alumno
-                  const alumnosDetalles = await Promise.all(alumnosIds.map(async (alumnoId) => {
-                    const responseAlumno = await clienteAxios.get(`/alumnos/getone/${alumnoId}`);
-                    return responseAlumno.data.alumno;
-                  }));
-          
-                  // Agregar la información de los alumnos al apoderado
-                  return { ...apoderado, alumnos: alumnosDetalles };
-                }));
-          
-                setApoderados(apoderadosConAlumnos);
-              }
-            } catch (error) {
-              console.error("Error fetching data:", error);
+          try {
+            const response = await clienteAxios.get("/apoderados/getall");
+            if (response.status === 200) {
+              const apoderadosData = response.data.apoderados;
+        
+              // Actualiza el estado de apoderados con la información de los alumnos
+              const apoderadosConAlumnos = await Promise.all(apoderadosData.map(async (apoderado) => {
+               let alumnosIds = []; 
+                try {
+                const responseAlumnos = await clienteAxios.get(`/alumnoApoderado/getAlumnos/${apoderado.id_apoderado}`);
+                
+                // Inicializar con un array vacío
+        
+                if (responseAlumnos.status === 200) {
+                  alumnosIds = responseAlumnos.data.idsAlumnos;
+                }
+              } catch (error) {
+                  console.error("Error fetching data:", error);
+                }
+                
+                // Obtener detalles de cada alumno solo si hay alumnos relacionados
+                const alumnosDetalles = alumnosIds.length > 0
+                  ? await Promise.all(alumnosIds.map(async (alumnoId) => {
+                      const responseAlumno = await clienteAxios.get(`/alumnos/getone/${alumnoId}`);
+                      return responseAlumno.data.alumno;
+                    }))
+                  : [];
+        
+                // Agregar la información de los alumnos al apoderado
+                return { ...apoderado, alumnos: alumnosDetalles };
+              }));
+        
+              setApoderados(apoderadosConAlumnos);
             }
-          };
+          } catch (error) {
+            console.error("Error fetching data:", error);
+          }
+        };
+        
+
 
         useEffect(() => {
           const intervalId = setInterval(() => {
@@ -127,6 +141,10 @@ function Apoderado({ serverDateTime }) {
 
 
         const deleteVisita = async(e) => {
+          const response = await  clienteAxios.get(`/personas/getonebyapoderado/${e}`)
+          const personaId=response.data.persona[0].id_persona
+          
+          console.log(response)
           Swal.fire({
               title: '¿Seguro?',
               text: "No podrás revertir esta decisión",
@@ -136,9 +154,20 @@ function Apoderado({ serverDateTime }) {
               cancelButtonColor: '#d33',
               confirmButtonText: 'Sí, borrar!'
             }).then(async(result) => {
-              if (result.isConfirmed) {
-
+              if (result.isConfirmed) {               console.log(e)
+                
+                try{
+                  const respuesta = await clienteAxios.get(`/alumnoApoderado/getAlumnos/${personaId}`)
+                  if(respuesta.status==200){
+                await clienteAxios.delete(`/alumnoApoderado/deleteApoderado/${e}`)
+                }
+                  }catch(error){
+                    console.log("no tiene alumnos")
+                  }
+                
                 await clienteAxios.delete(`/apoderados/delete/${e}`)
+                await clienteAxios.delete(`/personas/delete/${personaId}`)
+                
 
                 Swal.fire(
                   'Borrado!',
@@ -303,7 +332,7 @@ function Apoderado({ serverDateTime }) {
 
    </div>
         <Stack spacing={4} mt="10">
-          <Table variant="simple">
+          <Table variant='striped'>
             <Thead>
               <Tr>
               <Td fontWeight={"bold"}>RUN</Td>
@@ -346,12 +375,14 @@ function Apoderado({ serverDateTime }) {
                     </ModalBody>
 
                     <ModalFooter>
+                    <Button colorScheme="green" style={{marginRight:30}}  onClick={()=>router.push(`./agregarAlumno/${Apoderado.id_apoderado}`)}>Modificar</Button>
+
                         <Button onClick={closeModal}>Cerrar</Button>
                     </ModalFooter>
                     </ModalContent>
                 </Modal></Td>
              <Td>
-             <Button    onClick={()=>RegistrarVisita(Apoderado.id_apoderado)}>Registrar</Button>
+             <Button  colorScheme='teal'  onClick={()=>RegistrarVisita(Apoderado.id_apoderado)}>Registrar</Button>
             </Td>
              <Td>
 

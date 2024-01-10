@@ -198,7 +198,7 @@ const ReporteEvento =({ data }) => {
         <Heading as={"h1"}  size={"xl"} textAlign="center" mt={10}>Visitas</Heading>
 
         <Stack spacing={4} mt="10">
-          <Table variant="simple">
+          <Table variant='striped'>
             <Thead>
               <Tr>
               <Td fontWeight={"bold"}>Rut</Td>

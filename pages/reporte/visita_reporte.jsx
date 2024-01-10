@@ -285,7 +285,7 @@ return (
             </HStack>
             </Stack>
             <Container maxW="container.xl" mt={10}>
-            <Table variant="simple">
+            <Table variant='striped'>
             <Thead>
               <Tr>
               <Td fontWeight={"bold"}>Rut</Td>

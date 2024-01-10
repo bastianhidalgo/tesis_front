@@ -126,7 +126,7 @@ function Curso( ) {
               return cursos;
             }
           });
-          setApoderados(resultadosBusqueda);
+          setCursos(resultadosBusqueda);
         };
 
         const handleSearchChange = (e) => {
@@ -284,7 +284,7 @@ function Curso( ) {
 
    </div>
         <Stack spacing={4} mt="10">
-          <Table variant="simple">
+          <Table variant='striped'>
             <Thead>
               <Tr>
                 <Td fontWeight={"bold"}>Nombre</Td>

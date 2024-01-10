@@ -156,13 +156,17 @@ const ReporteVisita =({ data }) => {
         <HStack>
         <Text as={"h4"}>Rol: {rol} </Text>
         </HStack>
-      
+        <HStack>
+
+<Text as={"h4"}>Teléfono: {visita.telefono}</Text>
+
+</HStack>
         </Stack>
 
         <Heading as={"h1"}  size={"xl"} textAlign="center" mt={10}>Ingresos</Heading>
 
         <Stack spacing={4} mt="10">
-          <Table variant="simple">
+          <Table variant='striped'>
             <Thead>
               <Tr>
               <Td fontWeight={"bold"}>N°</Td>

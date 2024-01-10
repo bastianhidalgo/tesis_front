@@ -11,7 +11,7 @@ import {  Drawer,
   useDisclosure,Image,Box,Button,Container,Heading, Stack, Table, Thead, Tr, Td,Tbody ,Input, HStack,IconButton, VStack} from '@chakra-ui/react';
 import Swal   from 'sweetalert2'
 import {HamburgerIcon} from '@chakra-ui/icons'
-import { fechaSplit2 } from '../Components/util';
+import { fechaSplit2,fechaSplit,    UseRegexRut} from '../Components/util';
 import { format } from 'date-fns';
 import {ComponentDrawer} from '../Components/Drawer'
 
@@ -136,6 +136,8 @@ function Home({ serverDateTime }) {
 
 
         const deleteVisita = async(e) => {
+          const response = await  clienteAxios.get(`/personas/getonebyvisita/${e}`)
+          const personaId=response.data.persona[0].id_persona
           Swal.fire({
               title: '¿Seguro?',
               text: "No podrás revertir esta decisión",
@@ -146,8 +148,8 @@ function Home({ serverDateTime }) {
               confirmButtonText: 'Sí, borrar!'
             }).then(async(result) => {
               if (result.isConfirmed) {
-
-                await clienteAxios.delete(`/persona/delete/${e}`)
+                await clienteAxios.delete(`/usuarios/delete/${e}`)
+                await clienteAxios.delete(`/personas/delete/${personaId}`)
 
                 Swal.fire(
                   'Borrado!',
@@ -190,8 +192,8 @@ function Home({ serverDateTime }) {
                 //console.log(visita.fecha_inicio)
                 ingreso.fechaIngreso=formattedDateTime
                 ingreso.personaId=visita.id_persona
-             // console.log(ingreso)
-                if((formattedDateTime>=visita.fecha_inicio) && (formattedDateTime<=visita.fecha_termino)){
+              console.log(fechaSplit(visita.fecha_termino))
+                if((formattedDateTime>=visita.fecha_inicio) && (formattedDateTime<=`${fechaSplit(visita.fecha_termino)}T23:59:59.999Z`)){
                 // Crear una nueva entrada en la tabla de ingresos
                 const nuevoIngreso = await clienteAxios.post("/ingresos/create", ingreso);
                 console.log(nuevoIngreso)
@@ -258,7 +260,7 @@ function Home({ serverDateTime }) {
 
    </div>
         <Stack spacing={4} mt="10">
-          <Table variant="simple">
+          <Table variant='striped'>
             <Thead>
               <Tr>
               <Td fontWeight={"bold"}>RUN</Td>
@@ -285,7 +287,7 @@ function Home({ serverDateTime }) {
              <Td>{fechaSplit2(Visita.fechaInicio)}</Td>
              <Td>{fechaSplit2(Visita.fechaTermino)}</Td>
              <Td>
-             <Button    onClick={()=>RegistrarVisita(Visita.id_visita)}>Registrar</Button>
+             <Button colorScheme='teal'   onClick={()=>RegistrarVisita(Visita.id_visita)}>Registrar</Button>
             </Td>
              <Td>
 

@@ -195,7 +195,7 @@ function Eventos() {
    
    </div>
         <Stack spacing={4} mt="10">
-          <Table variant="simple">
+          <Table variant='striped'>
             <Thead>
               <Tr>
                 <Td fontWeight={"bold"}>Tema</Td>
@@ -219,7 +219,7 @@ eventos.map((Evento,idx)=>
              <Td>{fechaSplit2(Evento.fecha)}</Td>
              <Td>{horaSplit(Evento.fecha)}</Td>
             <Td>
-              <Button mr={3} onClick={()=>router.push(`./evento/Asistencia/${Evento.codigo_evento}`)}>Asistencia</Button>
+              <Button colorScheme='teal' mr={3} onClick={()=>router.push(`./evento/Asistencia/${Evento.codigo_evento}`)}>Asistencia</Button>
             </Td>
              <Td>
 
@@ -236,7 +236,7 @@ eventos.map((Evento,idx)=>
                     </ModalBody>
 
                     <ModalFooter>
-                        <Button colorScheme='green' mr={3} onClick={()=>router.push(`./evento/Modificar/${Evento.codigo_evento}`)}>Editar</Button>
+                        <Button colorScheme='teal' mr={3} onClick={()=>router.push(`./evento/Modificar/${Evento.codigo_evento}`)}>Editar</Button>
                         <Button onClick={closeModal}>Cerrar</Button>
                     </ModalFooter>
                     </ModalContent>

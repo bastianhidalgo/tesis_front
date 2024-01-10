@@ -50,7 +50,10 @@ function horaSplit(req){
 }}
 //2023-11-09T18:31:27.616Z
 
-
+function useRegexTelefono(input) {
+    let regex = /^(\+?56)?(\s?)(0?9)(\s?)[98765432]\d{7}$/;
+    return regex.test(input);
+}
 
 module.exports={
     GetRut,
@@ -58,4 +61,5 @@ module.exports={
     fechaSplit,
     fechaSplit2,
     horaSplit,
+    useRegexTelefono
 }

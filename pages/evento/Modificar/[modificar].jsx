@@ -6,7 +6,7 @@ import { Menu,Drawer,
     DrawerHeader,
     DrawerOverlay,
     DrawerContent,
-    DrawerCloseButton,
+    DrawerCloseButton,Text,
     useDisclosure,IconButton,VStack,FormControl,FormLabel,Input,Image,Button, Container, Heading, HStack, Stack } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
 import Swal from 'sweetalert2'
@@ -31,6 +31,10 @@ const EditarEvento =({ data }) => {
     const  eventoo  = router.query
     const id_evento = router.query.evento;
     const [hora,setHora]=useState(horaSplit(evento.fecha))
+    const [errorTema, setErrorTema] = useState('');
+    const [errorDescripcion, setErrorDescripcion] = useState('');
+    const [errorFecha, setErrorFecha] = useState('');
+    const [errorHora, setErrorHora] = useState('');
 
     const { isOpen, onOpen, onClose } = useDisclosure()
     const btnRef = useRef();
@@ -54,10 +58,33 @@ const EditarEvento =({ data }) => {
         }
         return false; // Si no encuentra ninguna letra, devuelve false
       }
+      const validateForm = () => {
+        const errors = {};
+    
+        if (!evento.tema) {
+            errors.errorTema = 'Por favor, el tema es requerido.';
+        }
+        if (!evento.descripcion) {
+            errors.errorDescripcion = 'Por favor, la descripción es requerida.';
+        }  
 
+        if (!evento.fecha) {
+          errors.errorFecha=('Por favor, la fecha es requerida.')
+    
+        } 
+        if (!hora) {
+          errors.errorHora=('Por favor, la hora es requerida.')
+    
+        }
+        // Agrega más validaciones según sea necesario
+    
+        return errors;
+    };
 
     const submitEvento = async(e) =>{
-        e.preventDefault()
+      const errors = validateForm();
+
+      if (Object.keys(errors).length === 0) { 
         try{
                 evento.fecha=fechaSplit(evento.fecha)+'T'+hora+':00.000Z'
             
@@ -82,6 +109,14 @@ const EditarEvento =({ data }) => {
                 footer: 'Comunicarse con administración'
               })
             }
+          }
+          else {
+            setErrorTema(errors.errorTema ||''); // Reinicia el mensaje de error
+            setErrorDescripcion(errors.errorDescripcion ||'');
+            setErrorFecha(errors.errorFecha ||'');
+            setErrorHora(errors.errorHora ||'');
+            
+        }
         }
         const handleBlur = () => {
             console.log('Hora actualizada:', hora);
@@ -162,16 +197,19 @@ const EditarEvento =({ data }) => {
 
     <Stack spacing={4} mt={10}>
         <HStack>
-        <InputForm label="Tema" handleChange={handleChange}  value={evento.tema} name="tema" placeholder="Rut" type="text"   />
-        <TextForm label="Descripción" handleChange={handleChange} name="descripcion" placeholder="Descripción" type="text"  value={evento.descripcion}/>
+        <InputForm isInvalid={errorTema !== ''} errors={errorTema} label="Tema" handleChange={handleChange}  value={evento.tema} name="tema" placeholder="Rut" type="text"   />
+        <TextForm isInvalid={errorDescripcion !== ''} errors={errorDescripcion} label="Descripción" handleChange={handleChange} name="descripcion" placeholder="Descripción" type="text"  value={evento.descripcion}/>
         
         </HStack>
 
         <HStack>
-        <InputForm value={fechaSplit(evento.fecha)} label="Fecha " handleChange={handleChange} name="fecha" placeholder="Fecha" type="date" />
+        <InputForm isInvalid={errorFecha !== ''} errors={errorFecha} value={fechaSplit(evento.fecha)} label="Fecha " handleChange={handleChange} name="fecha" placeholder="Fecha" type="date" />
         <FormControl>
-        <FormLabel>{"Hora"}</FormLabel>
-        <Input value={hora} label="Hora" onChange={InputHandleChange} onBlur={handleBlur} placeholder="hora" type="text" />
+        <FormLabel isInvalid={errorHora !== ''}>{"Hora"}</FormLabel>
+        <Input value={hora} label="Hora" onChange={InputHandleChange} onBlur={handleBlur} placeholder="hora" type="time" />
+        <Text color="red" fontSize="sm">
+    {errorHora}
+  </Text>
         </FormControl>
         </HStack>
     </Stack>

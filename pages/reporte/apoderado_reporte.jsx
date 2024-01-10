@@ -124,31 +124,6 @@ const ReporteApoderado =() => {
     };
 
 
-    const deleteVisita = async(e) => {
-      Swal.fire({
-          title: '¿Seguro?',
-          text: "No podrás revertir esta decisión",
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#3085d6',
-          cancelButtonColor: '#d33',
-          confirmButtonText: 'Sí, borrar!'
-        }).then(async(result) => {
-          if (result.isConfirmed) {
-
-            await clienteAxios.delete(`/usuarios/delete/${e}`)
-
-            Swal.fire(
-              'Borrado!',
-              'Visita ha sido borrada',
-              'success'
-            )
-            getVisitas();
-          }
-        })
-
-      }
-
 return (
   <Container maxW="container.xl" mt={10}>
              <HStack>
@@ -279,7 +254,7 @@ return (
             </HStack>
             </Stack>
             <Container maxW="container.xl" mt={10}>
-            <Table variant="simple">
+            <Table variant='striped'>
             <Thead>
               <Tr>
               <Td fontWeight={"bold"}>Rut</Td>

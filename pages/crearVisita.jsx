@@ -1,14 +1,7 @@
 import { useState,useEffect,useRef } from "react";
 import { clienteAxios } from './clienteAxios';
 import { useRouter } from 'next/router'
-import {  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  MenuItemOption,
-  MenuGroup,
-  MenuOptionGroup,
-  MenuDivider,
+import {  Menu,Text,
   Drawer,
     DrawerBody,
     DrawerFooter,
@@ -16,22 +9,30 @@ import {  Menu,
     DrawerOverlay,
     DrawerContent,
     DrawerCloseButton,
-    VStack,useDisclosure,IconButton,Image,Button,Container,Heading,HStack, Select, Stack,FormLabel, InputLeftAddon,InputGroup  } from '@chakra-ui/react';
+    VStack,useDisclosure,IconButton,Image,Button,Container,Heading,HStack, Select, Stack,FormLabel, InputLeftAddon,InputGroup ,FormControl  } from '@chakra-ui/react';
 import  {InputForm, TelForm} from '../Components/InputForm';
 import Swal   from 'sweetalert2'
 import {HamburgerIcon,ChevronDownIcon,AddIcon, MinusIcon } from '@chakra-ui/icons'
+
+import  {UseRegexRut} from '../Components/util';
 
 
 const Visitas = () =>{
     const { isOpen, onOpen, onClose } = useDisclosure()
     const btnRef = useRef();
+    const [errorNombre, setErrorNombre] = useState('');
+    const [errorApellido, setErrorApellido] = useState('');
+    const [errorRut, setErrorRut] = useState('');
+    const [errorTelefono, setErrorTelefono] = useState('');
+    const [errorRol, setErrorRol] = useState('');
+    const [errorFechaInicio, setErrorFechaInicio] = useState('');
+    const [errorFechaTermino, setErrorFechaTermino] = useState('');
 
     const [visita,setVisita]= useState({
       rut:'',
       nombre:'',
       apellido: '',
       telefono: ''
-      //rol:''
       
     }) 
     const [roles, setRoles] = useState([]);
@@ -43,7 +44,7 @@ const Visitas = () =>{
       fecha_inicio: '',
       fecha_termino: ''
     }) 
-    const [errors, setErrors] = useState({});
+    const [errors, setErrors] = useState('');
 
     const handleChange=(e) =>{
         setVisita({
@@ -57,13 +58,7 @@ const Visitas = () =>{
           [e.target.name]: e.target.value
       })
   }
-  const handleBlur = (e) => {
-    const { name, value } = e.target;
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      [name]: value.trim() === '' ? 'Este campo no puede quedar en blanco' : '',
-    }));
-  };
+
 
   
     const router = useRouter()
@@ -81,28 +76,27 @@ const Visitas = () =>{
         fetchRoles();
     }, []);
 
-    const submitVisita = async (e) => {
-        e.preventDefault(); 
+    const submitVisita = async () => {
+       
         try{
             persona.fecha_inicio=persona.fecha_inicio+'T00:00:00.000Z';
            persona.fecha_termino=persona.fecha_termino+'T00:00:00.000Z';
-            
+           visita.telefono="+569"+visita.telefono;
             persona.rol= parseInt(persona.rol)
-
-
+         //   console.log(visita)
+       //     console.log(persona)
 
              const response = await clienteAxios.post("/usuarios/create",visita);
             const variable = await clienteAxios.get(`/usuarios/comparar/${visita.rut}`)
-             console.log(variable.data.visita[0].id_visita)
+           // console.log(variable)
+           //  console.log(variable.data.visita[0].id_visita)
              persona.visitaId=variable.data.visita[0].id_visita
-             console.log(persona)
+         //    console.log(persona)
 
              const respuesta= await clienteAxios.post("/personas/create",persona);
-            
-  
-            
-    
-            if(respuesta.status==200 ){
+
+
+            if(respuesta.status==200 && response.status==200){
             console.log("visita creada")
             Swal.fire({
                 icon:'success',
@@ -114,7 +108,6 @@ const Visitas = () =>{
             }
         }catch(error){
             console.log("error al crear la visita")
-            console.log(e)
             Swal.fire({
                 icon: 'error',
                 title: 'Oops...',
@@ -198,20 +191,24 @@ const Visitas = () =>{
             
             <Stack  spacing={4} mt={10}>
                 <HStack >
-                <InputForm label="Rut"
-                handleChange={handleChange} name="rut" placeholder="Rut" type="text" value={visita.rut} handleBlur={handleBlur} />
-                {errors.rut && <div className="invalid-feedback">{errors.rut}</div>}
+            
 
-                <InputForm label="Nombre" handleChange={handleChange} name="nombre" placeholder="Nombre" type="text" value={visita.nombre}/>
+
+
+                <InputForm label="Nombre" isInvalid={errorNombre !== ''} errors={errorNombre} handleChange={handleChange} name="nombre" placeholder="Nombre" type="text" value={visita.nombre}/>
+                <InputForm label="Apellido" isInvalid={errorApellido !== ''} errors={errorApellido} handleChange={handleChange} name="apellido" placeholder="Apellido" type="text" value={visita.apellido}/>
+                
+                
                 </HStack>
                 <HStack>
-                <InputForm label="Apellido" handleChange={handleChange} name="apellido" placeholder="Apellido" type="text" value={visita.apellido}/>
-                <TelForm label="Teléfono" handleChange={handleChange} name="telefono" placeholder="Teléfono" type="tel" value={visita.telefono}/>
+                <InputForm label="Rut" handleChange={handleChange} isInvalid={errorRut !== ''} errors={errorRut}  name="rut" placeholder="Rut" type="text" value={visita.rut}  />
+                
+                <TelForm label="Teléfono" isInvalid={errorTelefono !== ''} errors={errorTelefono} handleChange={handleChange} name="telefono" placeholder="Teléfono" type="tel" value={visita.telefono}/>
                 </HStack>
                 <FormLabel style={{marginBottom:-10}}>Rol de la Visita</FormLabel>
                 <HStack>
-               
-                <Select
+                <FormControl isInvalid={errorRol !== ''} id="rol">
+                <Select 
     label="Rol Visita"
     onChange={handleChange2}
     name="rol"
@@ -224,14 +221,49 @@ const Visitas = () =>{
         </option>
     ))}
 </Select>
+<Text color="red" fontSize="sm">
+  {errorRol}
+</Text>
+</FormControl>
                 </HStack>
                 <HStack>
-                <InputForm label="Fecha de Inicio" handleChange={handleChange2} name="fecha_inicio" placeholder="Fecha de Inicio" type="date" value={persona.fecha_inicio}/>
-                <InputForm label="Fecha de Término" handleChange={handleChange2} name="fecha_termino" placeholder="Fecha de Término" type="date"  value={persona.fecha_termino}/>
+                <InputForm label="Fecha de Inicio" isInvalid={errorFechaInicio !== ''} errors={errorFechaInicio} handleChange={handleChange2} name="fecha_inicio" placeholder="Fecha de Inicio" type="date" value={persona.fecha_inicio}/>
+                <InputForm label="Fecha de Término" isInvalid={errorFechaTermino !== ''} errors={errorFechaTermino} handleChange={handleChange2} name="fecha_termino" placeholder="Fecha de Término" type="date"  value={persona.fecha_termino}/>
                 </HStack>
             </Stack>
             <HStack style={{marginLeft:1100}}>
-        <Button colorScheme="blue" mt={10} mb={10} onClick={submitVisita}>Crear</Button>
+
+              <Button
+              colorScheme="blue" mt={10} mb={10}
+            onClick={() => {
+    if (!visita.nombre || visita.nombre.trim() === '') {
+      setErrorNombre('Por favor, el nombre es requerido.');
+    } if (!visita.apellido) {
+      setErrorApellido('Por favor, el apellido es requerido.');
+    } if ((!visita.rut) || (!UseRegexRut(visita.rut)) ) {
+      setErrorRut('Por favor, ingrese rut valido.');
+    } if ((!visita.telefono) || (visita.telefono.length!==8) ) {
+      setErrorTelefono('Por favor, ingrese teléfono valido.');
+    } if (!persona.rol) {
+      setErrorRol('Por favor, el rol es requerido.');
+    } if (!persona.fecha_inicio) {
+      setErrorFechaInicio('Por favor, la fecha de inicio es requerida.');
+    } if (!persona.fecha_termino) {
+      setErrorFechaTermino('Por favor, la fecha de término es requerida.');
+    } else {
+      setErrorNombre(''); // Reinicia el mensaje de error
+      setErrorApellido('');
+      setErrorRut('');
+      setErrorTelefono('');
+      setErrorRol('');
+      setErrorFechaInicio('');
+      setErrorFechaTermino('');
+      submitVisita();
+    }
+  }}>
+Crear
+  </Button>
+        
         <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('./Home')}>Volver</Button>
     </HStack>
         </Container>

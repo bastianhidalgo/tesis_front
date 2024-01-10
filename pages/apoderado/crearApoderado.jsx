@@ -17,6 +17,12 @@ import {HamburgerIcon} from '@chakra-ui/icons'
 const CrearApoderado = () =>{
     const { isOpen, onOpen, onClose } = useDisclosure()
     const btnRef = useRef();
+    const [errorNombre, setErrorNombre] = useState('');
+    const [errorApellido, setErrorApellido] = useState('');
+    const [errorRut, setErrorRut] = useState('');
+    const [errorTelefono, setErrorTelefono] = useState('');
+    const [errorFechaInicio, setErrorFechaInicio] = useState('');
+    const [errorFechaTermino, setErrorFechaTermino] = useState('');
 
     const [apoderado,setApoderado]= useState({
       rut:'',
@@ -182,21 +188,50 @@ const CrearApoderado = () =>{
             
             <Stack  spacing={4} mt={10}>
                 <HStack >
-                <InputForm label="Rut" handleChange={handleChange} name="rut" placeholder="Rut" type="text" value={apoderado.rut}  />
-                <InputForm label="Nombre" handleChange={handleChange} name="nombre" placeholder="Nombre" type="text" value={apoderado.nombre}/>
+               
+                <InputForm isInvalid={errorNombre !== ''} errors={errorNombre} label="Nombre" handleChange={handleChange} name="nombre" placeholder="Nombre" type="text" value={apoderado.nombre}/> 
+                <InputForm isInvalid={errorApellido !== ''} errors={errorApellido} label="Apellido" handleChange={handleChange} name="apellido" placeholder="Apellido" type="text" value={apoderado.apellido}/>
+
                 </HStack>
                 <HStack>
-                <InputForm label="Apellido" handleChange={handleChange} name="apellido" placeholder="Apellido" type="text" value={apoderado.apellido}/>
-                <TelForm label="Teléfono" handleChange={handleChange} name="telefono" placeholder="Teléfono" type="tel" value={apoderado.telefono}/>
+                <InputForm isInvalid={errorRut !== ''} errors={errorRut} label="Rut" handleChange={handleChange} name="rut" placeholder="Rut" type="text" value={apoderado.rut}  />
+
+                <TelForm isInvalid={errorTelefono !== ''} errors={errorTelefono} label="Teléfono" handleChange={handleChange} name="telefono" placeholder="Teléfono" type="tel" value={apoderado.telefono}/>
                 </HStack>
 
                 <HStack>
-                <InputForm label="Fecha de Inicio" handleChange={handleChange2} name="fecha_inicio" placeholder="Fecha de Inicio" type="date" value={persona.fecha_inicio}/>
-                <InputForm label="Fecha de Término" handleChange={handleChange2} name="fecha_termino" placeholder="Fecha de Término" type="date"  value={persona.fecha_termino}/>
+                <InputForm isInvalid={errorFechaInicio !== ''} errors={errorFechaInicio} label="Fecha de Inicio" handleChange={handleChange2} name="fecha_inicio" placeholder="Fecha de Inicio" type="date" value={persona.fecha_inicio}/>
+                <InputForm isInvalid={errorFechaTermino !== ''} errors={errorFechaTermino} label="Fecha de Término" handleChange={handleChange2} name="fecha_termino" placeholder="Fecha de Término" type="date"  value={persona.fecha_termino}/>
                 </HStack>
             </Stack>
             <HStack style={{marginLeft:1100}}>
-        <Button colorScheme="blue" mt={10} mb={10} onClick={submitVisita}>Crear</Button>
+            <Button
+              colorScheme="blue" mt={10} mb={10}
+            onClick={() => {
+    if (!apoderado.nombre) {
+      setErrorNombre('Por favor, el nombre es requerido.');
+    } if (!apoderado.apellido) {
+      setErrorApellido('Por favor, el apellido es requerido.');
+    } if (!apoderado.rut) {
+      setErrorRut('Por favor, el rut es requerido.');
+    } if ((!apoderado.telefono) || (apoderado.telefono.length!==8) ) {
+      setErrorTelefono('Por favor, el teléfono es inválido.');
+    } if (!persona.fecha_inicio) {
+      setErrorFechaInicio('Por favor, la fecha de inicio es requerida.');
+    } if (!persona.fecha_termino) {
+      setErrorFechaTermino('Por favor, la fecha de término es requerida.');
+    } else {
+      setErrorNombre(''); // Reinicia el mensaje de error
+      setErrorApellido('');
+      setErrorRut('');
+      setErrorTelefono('');
+      setErrorFechaInicio('');
+      setErrorFechaTermino('');
+      submitVisita();
+    }
+  }}>
+Crear
+  </Button>
         <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../Home')}>Volver</Button>
     </HStack>
         </Container>

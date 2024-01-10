@@ -8,7 +8,7 @@ import { Menu,Drawer,
   DrawerOverlay,
   DrawerContent,
   DrawerCloseButton,VStack,IconButton,
-  useDisclosure,FormControl,Image,Button,Container,Heading,HStack, Select, Stack,FormLabel, Input } from '@chakra-ui/react';
+  useDisclosure,FormControl,Image,Button,Container,Heading,HStack, Select, Stack,FormLabel, Input,Text } from '@chakra-ui/react';
 import  {TextForm,InputForm} from '../../Components/InputForm';
 import Swal   from 'sweetalert2'
 import { fechaSplit,horaSplit } from "@/Components/util";
@@ -18,7 +18,11 @@ import {HamburgerIcon} from '@chakra-ui/icons'
 const Evento = () =>{
   const { isOpen, onOpen, onClose } = useDisclosure()
   const btnRef = useRef();
-    
+  const [errorTema, setErrorTema] = useState('');
+  const [errorDescripcion, setErrorDescripcion] = useState('');
+  const [errorFecha, setErrorFecha] = useState('');
+  const [errorHora, setErrorHora] = useState('');
+
     const [evento,setEvento]= useState({
       tema:'',
       descripcion:'',
@@ -40,8 +44,10 @@ const Evento = () =>{
     const submitEvento = async (e) => {
         e.preventDefault(); 
         try{
-            
+            console.log(hora)
             evento.fecha=fechaSplit(evento.fecha)+'T'+hora+':00.000Z'
+            console.log(evento)
+
             const response = await clienteAxios.post("/eventos/create",evento);
     
     
@@ -148,19 +154,44 @@ const Evento = () =>{
 
             <Stack  spacing={4} mt={10}>
                 <HStack >
-                <InputForm label="Tema" handleChange={handleChange} name="tema" placeholder="Tema" type="text" value={evento.tema}  />
-                <TextForm label="Descripción" handleChange={handleChange} name="descripcion" placeholder="Descripción" type="text" value={evento.descripcion}/>
+                <InputForm label="Tema"  isInvalid={errorTema !== ''} errors={errorTema} handleChange={handleChange} name="tema" placeholder="Tema" type="text" value={evento.tema}  />
+                <TextForm label="Descripción"  isInvalid={errorDescripcion !== ''} errors={errorDescripcion} handleChange={handleChange} name="descripcion" placeholder="Descripción" type="text" value={evento.descripcion}/>
                 </HStack>
                 <HStack>
-                <InputForm label="Fecha" handleChange={handleChange} name="fecha" placeholder="Fecha" type="date" value={evento.fecha}/>
-                <FormControl>
+                <InputForm label="Fecha"  isInvalid={errorFecha !== ''} errors={errorFecha} handleChange={handleChange} name="fecha" placeholder="Fecha" type="date" value={evento.fecha}/>
+                <FormControl isInvalid={errorFecha !== ''}>
                 <FormLabel>{"Hora"}</FormLabel>
-                <Input value={hora} label="Hora" onChange={InputHandleChange} onBlur={handleBlur}   placeholder="ejemplo: 12:00" type="text" />
+                <Input value={hora}   label="Hora" onChange={InputHandleChange} onBlur={handleBlur}    placeholder="ejemplo: 12:00" type="time" />
+                <Text color="red" fontSize="sm">
+    {errorHora}
+  </Text>
                 </FormControl>
                 </HStack>
             </Stack>
             <HStack style={{marginLeft:1100}}>
-        <Button colorScheme="blue" mt={10} mb={10} onClick={submitEvento}>Crear</Button>
+        
+        <Button
+              colorScheme="blue" mt={10} mb={10}
+            onClick={() => {
+    if (!evento.tema) {
+      setErrorTema('Por favor, el tema es requerido.');
+    } if (!evento.descripcion) {
+      setErrorDescripcion('Por favor, la descripción es requerida.');
+    } if (!evento.fecha) {
+      setErrorFecha('Por favor, la fecha es requerida.');
+    } if (!hora) {
+      setErrorHora('Por favor, la hora es requerida.');
+    }  else {
+      setErrorTema(''); // Reinicia el mensaje de error
+      setErrorDescripcion('');
+      setErrorFecha('');
+      setErrorHora('');
+      
+      submitEvento();
+    }
+  }}>
+Crear
+  </Button>
         <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../evento')}>Volver</Button>
     </HStack>
         </Container>

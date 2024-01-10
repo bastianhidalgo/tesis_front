@@ -1,6 +1,6 @@
 import { useState, useEffect,useRef } from 'react'
 import {InputForm} from '../../../Components/InputForm'
-import { Menu,Drawer,
+import { Menu,  Drawer,Text,
     DrawerBody,
     DrawerFooter,
     DrawerHeader,
@@ -11,7 +11,7 @@ import { Menu,Drawer,
 import { useRouter } from 'next/router'
 import Swal from 'sweetalert2'
 import { clienteAxios } from '../../clienteAxios';
-import { fechaSplit } from '../../../Components/util';
+import { fechaSplit, UseRegexRut,useRegexTelefono } from '../../../Components/util';
 import {HamburgerIcon} from '@chakra-ui/icons'
 import SelectForm from '@/Components/SelectForm'
 
@@ -38,6 +38,16 @@ const Editar =({ data,datax,datazo }) => {
     const router = useRouter()
     const { isOpen, onOpen, onClose } = useDisclosure()
     const btnRef = useRef();
+    const [errors, setErrors] = useState('');
+
+    const [errorNombre, setErrorNombre] = useState('');
+    const [errorApellido, setErrorApellido] = useState('');
+    const [errorRut, setErrorRut] = useState('');
+    const [errorTelefono, setErrorTelefono] = useState('');
+    const [errorRol, setErrorRol] = useState('');
+    const [errorFechaInicio, setErrorFechaInicio] = useState('');
+    const [errorFechaTermino, setErrorFechaTermino] = useState('');
+
 
     const handleChange=(e) =>{
         setVisita({
@@ -70,9 +80,13 @@ const Editar =({ data,datax,datazo }) => {
 
 
     const submitVisita = async(e) =>{
-        e.preventDefault()
-        try{
+      const errors = validateForm();
 
+      if (Object.keys(errors).length === 0) { 
+      
+      try{
+         
+          console.log(visita)
             if(!contieneLetra(persona.fecha_inicio)){
               persona.fecha_inicio=persona.fecha_inicio+'T00:00:00.000Z'
             }
@@ -103,8 +117,50 @@ const Editar =({ data,datax,datazo }) => {
                 footer: 'Comunicarse con administración'
               })
             }
+          }
+              else {
+                setErrorNombre(errors.errorNombre ||''); // Reinicia el mensaje de error
+                setErrorApellido(errors.errorApellido ||'');
+                setErrorRut(errors.errorRut ||'');
+                setErrorTelefono(errors.errorTelefono ||'');
+                setErrorRol(errors.errorRol ||'');
+                setErrorFechaInicio(errors.errorFechaInicio ||'');
+                setErrorFechaTermino(errors.errorFechaTermino ||'');
+            }
         }
-
+        const validateForm = () => {
+          const errors = {};
+      
+          if (!visita.nombre) {
+              errors.errorNombre = 'Por favor, el nombre es requerido.';
+          }
+          if (!visita.apellido) {
+              errors.errorApellido = 'Por favor, el apellido es requerido.';
+          }  
+          if ((!visita.rut) || (!UseRegexRut(visita.rut)) ) {
+            errors.errorRut=('Por favor, ingrese rut valido.')
+      
+          }
+           if ((!visita.telefono) || (!useRegexTelefono(visita.telefono)) ) {
+            errors.errorTelefono=('Por favor, ingrese teléfono valido.')
+      
+          } 
+          if (!persona.rol) {
+            errors.errorRol=('Por favor, el rol es requerido.')
+      
+          } 
+          if (!persona.fecha_inicio) {
+            errors.errorFechaInicio=('Por favor, la fecha de inicio es requerida.')
+      
+          } 
+          if (!persona.fecha_termino) {
+            errors.errorFechaTermino=('Por favor, la fecha de término es requerida.')
+      
+          }
+          // Agrega más validaciones según sea necesario
+      
+          return errors;
+      };
 
         useEffect(() => {
           const fetchRoles = async () => {
@@ -119,7 +175,7 @@ const Editar =({ data,datax,datazo }) => {
           fetchRoles();
       }, []);
         
-
+      
     return (
     <Container maxW="container.xl" mt={10}>
                   <HStack>
@@ -192,17 +248,18 @@ const Editar =({ data,datax,datazo }) => {
       </Drawer>
     <Stack spacing={4} mt={10}>
         <HStack>
-        <InputForm label="Rut" handleChange={handleChange}  value={visita.rut} name="rut" placeholder="Rut" type="text"   />
-        <InputForm label="Nombre" handleChange={handleChange} name="nombre" placeholder="Nombre" type="text"  value={visita.nombre}/>
+        <InputForm  isInvalid={errorNombre !== ''} errors={errorNombre} label="Nombre" handleChange={handleChange} name="nombre" placeholder="Nombre" type="text"  value={visita.nombre}/>
+        <InputForm isInvalid={errorApellido !== ''} errors={errorApellido} value={visita.apellido} label="Apellido" handleChange={handleChange} name="apellido" placeholder="Apellido" type="text" />
 
         </HStack>
         <HStack>
-        <InputForm value={visita.apellido} label="Apellido" handleChange={handleChange} name="apellido" placeholder="Apellido" type="text" />
-        <InputForm value={visita.telefono} label="Teléfono" handleChange={handleChange} name="telefono" placeholder="Teléfono" type="text" />
+        <InputForm isInvalid={errorRut !== ''} errors={errorRut} label="Rut" handleChange={handleChange}  value={visita.rut} name="rut" placeholder="Rut" type="text"   />
+
+        <InputForm isInvalid={errorTelefono !== ''} errors={errorTelefono} value={visita.telefono} label="Teléfono" handleChange={handleChange} name="telefono" placeholder="Teléfono" type="text" />
         </HStack>
 
 <HStack>
-                <FormControl id="descripcion">
+                <FormControl isInvalid={errorRol !== ''} id="descripcion">
                 <FormLabel>Rol</FormLabel>
                 <Select
     label="Rol Visita"
@@ -217,15 +274,19 @@ const Editar =({ data,datax,datazo }) => {
         </option>
     ))}
 </Select>
+<Text color="red" fontSize="sm">
+    {errorRol}
+  </Text>
 </FormControl>
                 </HStack>
         <HStack>
-        <InputForm value={fechaSplit(persona.fecha_inicio)} label="Fecha inicio " handleChange={handleChangePersona} name="fecha_inicio" placeholder="Fecha inicio rol" type="date" />
-        <InputForm value={fechaSplit(persona.fecha_termino)} label="Fecha termino " handleChange={handleChangePersona} name="fecha_termino" placeholder="Fecha termino rol" type="date" />
+        <InputForm isInvalid={errorFechaInicio !== ''} errors={errorFechaInicio} value={fechaSplit(persona.fecha_inicio)} label="Fecha inicio " handleChange={handleChangePersona} name="fecha_inicio" placeholder="Fecha inicio rol" type="date" />
+        <InputForm isInvalid={errorFechaTermino !== ''} errors={errorFechaTermino} value={fechaSplit(persona.fecha_termino)} label="Fecha termino " handleChange={handleChangePersona} name="fecha_termino" placeholder="Fecha termino rol" type="date" />
         </HStack>
     </Stack>
     <HStack style={{marginLeft:1100}}>
-        <Button colorScheme="blue" mt={10} mb={10} onClick={submitVisita}>Modificar</Button>
+        <Button colorScheme="blue" mt={10} mb={10}  onClick=
+      {submitVisita} >Modificar</Button>
         <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../../Home')}>Volver</Button>
     </HStack>
     </Container>
