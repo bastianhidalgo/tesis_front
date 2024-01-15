@@ -23,6 +23,8 @@ import { format } from 'date-fns';
 function Apoderado({ serverDateTime }) {
   const [horaactual, setHoraactual] = useState('');
     const [modalAlumnos, setModalAlumnos] = useState([]);
+    const [modalStates2, setModalStates2] = useState([]); // Estado para gestionar la visibilidad de cada modal
+
     const [currentDateTime, setCurrentDateTime] = useState(serverDateTime);
     const [ingreso,setIngreso]= useState({
       fechaIngreso: '',
@@ -34,6 +36,9 @@ function Apoderado({ serverDateTime }) {
         nombre: '',
         apellido:'',
         telefono: '',
+        fechaInicio:'',
+        fechaTermino:'',
+        observacion:'',
         alumnos: [],
       }]);
       const [alumnos,setAlumnos]=useState([{
@@ -56,39 +61,65 @@ function Apoderado({ serverDateTime }) {
             if (response.status === 200) {
               const apoderadosData = response.data.apoderados;
         
-              // Actualiza el estado de apoderados con la información de los alumnos
               const apoderadosConAlumnos = await Promise.all(apoderadosData.map(async (apoderado) => {
-               let alumnosIds = []; 
+                let alumnosIds = [];
                 try {
-                const responseAlumnos = await clienteAxios.get(`/alumnoApoderado/getAlumnos/${apoderado.id_apoderado}`);
-                
-                // Inicializar con un array vacío
+                  const responseAlumnos = await clienteAxios.get(`/alumnoApoderado/getAlumnos/${apoderado.id_apoderado}`);
         
-                if (responseAlumnos.status === 200) {
-                  alumnosIds = responseAlumnos.data.idsAlumnos;
-                }
-              } catch (error) {
+                  if (responseAlumnos.status === 200) {
+                    alumnosIds = responseAlumnos.data.idsAlumnos;
+                  }
+                } catch (error) {
                   console.error("Error fetching data:", error);
                 }
-                
-                // Obtener detalles de cada alumno solo si hay alumnos relacionados
+        
                 const alumnosDetalles = alumnosIds.length > 0
                   ? await Promise.all(alumnosIds.map(async (alumnoId) => {
-                      const responseAlumno = await clienteAxios.get(`/alumnos/getone/${alumnoId}`);
-                      return responseAlumno.data.alumno;
-                    }))
+                    const responseAlumno = await clienteAxios.get(`/alumnos/getone/${alumnoId}`);
+                    return responseAlumno.data.alumno;
+                  }))
                   : [];
         
-                // Agregar la información de los alumnos al apoderado
                 return { ...apoderado, alumnos: alumnosDetalles };
               }));
         
-              setApoderados(apoderadosConAlumnos);
+              const apoderadosConPersona = await Promise.all(
+                apoderadosData.map(async (apoderado) => {
+                  try {
+                    const personaResponse = await clienteAxios.get(`/personas/getonebyapoderado/${apoderado.id_apoderado}`);
+                    const persona = personaResponse.data.persona[0];
+                    apoderado.fechaInicio = persona.fecha_inicio;
+                    apoderado.fechaTermino = persona.fecha_termino;
+                    apoderado.observacion = persona.observacion;
+                    if (apoderado.observacion == null || apoderado.observacion === '') {
+                      apoderado.observacion = 'No tiene';
+                    }
+        
+                    return apoderado;
+                  } catch (error) {
+                    console.error("Error fetching additional data:", error);
+                    return apoderado;
+                  }
+                })
+              );
+        
+              const apoderadosCompletos = apoderadosConAlumnos.map((apoderado, index) => ({
+                ...apoderado,
+                fechaInicio: apoderadosConPersona[index].fechaInicio,
+                fechaTermino: apoderadosConPersona[index].fechaTermino,
+                observacion: apoderadosConPersona[index].observacion,
+              }));
+        
+              setApoderados(apoderadosCompletos);
+        
             }
           } catch (error) {
             console.error("Error fetching data:", error);
           }
         };
+        
+        
+
         
 
 
@@ -141,10 +172,18 @@ function Apoderado({ serverDateTime }) {
 
 
         const deleteVisita = async(e) => {
+          let personaId;
+          try{
           const response = await  clienteAxios.get(`/personas/getonebyapoderado/${e}`)
-          const personaId=response.data.persona[0].id_persona
+           personaId=response.data.persona[0].id_persona
+            console.log(response)
+            console.log(personaId)
+
+          }catch(error){
+            console.log(error)
+          }
           
-          console.log(response)
+         // console.log(response)
           Swal.fire({
               title: '¿Seguro?',
               text: "No podrás revertir esta decisión",
@@ -154,19 +193,33 @@ function Apoderado({ serverDateTime }) {
               cancelButtonColor: '#d33',
               confirmButtonText: 'Sí, borrar!'
             }).then(async(result) => {
-              if (result.isConfirmed) {               console.log(e)
+              if (result.isConfirmed) {            
                 
                 try{
-                  const respuesta = await clienteAxios.get(`/alumnoApoderado/getAlumnos/${personaId}`)
+                  const respuesta = await clienteAxios.get(`/alumnoApoderado/getAlumnos/${e}`)
                   if(respuesta.status==200){
                 await clienteAxios.delete(`/alumnoApoderado/deleteApoderado/${e}`)
                 }
                   }catch(error){
                     console.log("no tiene alumnos")
                   }
-                
-                await clienteAxios.delete(`/apoderados/delete/${e}`)
+                                
+                  try{
+
                 await clienteAxios.delete(`/personas/delete/${personaId}`)
+                  }catch(error){
+                    console.log(error);
+                             }      
+                    try{
+                      
+                      await clienteAxios.delete(`/apoderados/delete/${e}`)
+
+                    }catch(error){
+                      console.log(error)
+                    }
+
+                  
+                 
                 
 
                 Swal.fire(
@@ -188,6 +241,15 @@ function Apoderado({ serverDateTime }) {
           };
           const closeModal = () => {
             setModalStates(modalStates.map(() => false));
+          };
+          const openModal2 = (index) => {
+            const newModalStates = [...modalStates2];
+            newModalStates[index] = true;
+            setModalStates2(newModalStates);
+          };
+        
+          const closeModal2 = () => {
+            setModalStates2(modalStates2.map(() => false));
           };
 
           const RegistrarVisita = async (idVisita) => {
@@ -338,7 +400,7 @@ function Apoderado({ serverDateTime }) {
               <Td fontWeight={"bold"}>RUN</Td>
                 <Td fontWeight={"bold"}>Nombre</Td>
                 <Td fontWeight={"bold"}>Apellido</Td>
-                <Td fontWeight={"bold"}>Teléfono</Td>
+                <Td fontWeight={"bold"}>Ver info</Td>
                 <Td fontWeight={"bold"}>Ver Alumno(s)</Td>
                 <Td fontWeight={"bold"}>Registrar Ingreso</Td>
                 <Td fontWeight={"bold"}>Modificar</Td>
@@ -354,7 +416,34 @@ function Apoderado({ serverDateTime }) {
              <Td >{Apoderado.rut}</Td>
              <Td >{Apoderado.nombre}</Td>
              <Td>{Apoderado.apellido}</Td>
-             <Td>{Apoderado.telefono}</Td>
+             <Td>
+
+<Button colorScheme="blue"   onClick={() => openModal2(idx)}>Ver</Button>
+  <Modal closeOnOverlayClick={false} isOpen={modalStates2[idx]} onClose={closeModal2}>
+      <ModalOverlay />
+      <ModalContent>
+      <ModalHeader>Datos de la visita</ModalHeader>
+      <ModalCloseButton />
+      <ModalBody pb={6}>
+           <Text>Rut: {Apoderado.rut}</Text>
+           <Text>Nombre: {Apoderado.nombre} {Apoderado.apellido}</Text>   
+           <Text>Teléfono: {Apoderado.telefono}</Text>
+
+
+          <Text>Fecha de inicio: {fechaSplit2(Apoderado.fechaInicio)}</Text>
+          <Text>Fecha de término: {fechaSplit2(Apoderado.fechaTermino)}</Text>
+          <Text>Observación: {Apoderado.observacion}</Text>
+
+      </ModalBody>
+
+      <ModalFooter>
+          <Button colorScheme='blue' onClick={closeModal2}>Cerrar</Button>
+      </ModalFooter>
+      </ModalContent>
+  </Modal>
+
+
+</Td>
              <Td>
 
              <Button colorScheme="blue" onClick={() => openModal(idx)}>Alumnos</Button>

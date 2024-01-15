@@ -1,5 +1,5 @@
 import { useState, useEffect,useRef } from 'react'
-import {InputForm} from '../../../Components/InputForm'
+import {InputForm, TextForm} from '../../../Components/InputForm'
 import { Menu,  Drawer,Text,
     DrawerBody,
     DrawerFooter,
@@ -13,7 +13,6 @@ import Swal from 'sweetalert2'
 import { clienteAxios } from '../../clienteAxios';
 import { fechaSplit, UseRegexRut,useRegexTelefono } from '../../../Components/util';
 import {HamburgerIcon} from '@chakra-ui/icons'
-import SelectForm from '@/Components/SelectForm'
 
 
 export const getServerSideProps = async (context)=>{
@@ -283,6 +282,9 @@ const Editar =({ data,datax,datazo }) => {
         <InputForm isInvalid={errorFechaInicio !== ''} errors={errorFechaInicio} value={fechaSplit(persona.fecha_inicio)} label="Fecha inicio " handleChange={handleChangePersona} name="fecha_inicio" placeholder="Fecha inicio rol" type="date" />
         <InputForm isInvalid={errorFechaTermino !== ''} errors={errorFechaTermino} value={fechaSplit(persona.fecha_termino)} label="Fecha termino " handleChange={handleChangePersona} name="fecha_termino" placeholder="Fecha termino rol" type="date" />
         </HStack>
+        <HStack>
+                <TextForm label="Observación (opcional)"  handleChange={handleChangePersona} name="observacion" placeholder="Observación" type="text" value={persona.observacion}/>
+</HStack>
     </Stack>
     <HStack style={{marginLeft:1100}}>
         <Button colorScheme="blue" mt={10} mb={10}  onClick=

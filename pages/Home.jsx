@@ -1,7 +1,13 @@
 import { React,useState, useEffect, useRef } from 'react';
 import { clienteAxios } from './clienteAxios';
 import { useRouter } from 'next/router'
-import {  Drawer,
+import {  Modal,Text,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,Drawer,
   DrawerBody,
   DrawerFooter,
   DrawerHeader,
@@ -25,8 +31,10 @@ function Home({ serverDateTime }) {
         telefono: '',
         rol:'',
         fechaInicio:'',
-        fechaTermino:''
+        fechaTermino:'',
+        observacion:'',
       }]);
+      const [modalStates, setModalStates] = useState([]); // Estado para gestionar la visibilidad de cada modal
 
       const [busqueda, setBusqueda] = useState("");
       const [currentDateTime, setCurrentDateTime] = useState(serverDateTime);
@@ -60,6 +68,10 @@ function Home({ serverDateTime }) {
                     visita.rol=persona.rol;
                     visita.fechaInicio = persona.fecha_inicio; // Agrega la fecha de inicio a la visita
                     visita.fechaTermino = persona.fecha_termino; // Agrega la fecha de término a la visita
+                    visita.observacion=persona.observacion
+                    if(visita.observacion==null || visita.observacion==''){
+                      visita.observacion='No tiene';
+                    }
                     // Obtener información del rol asociado a la persona
                     const rolResponse = await clienteAxios.get(`/rol/getone/${persona.rol}`);
                     const rol = rolResponse.data.rol;
@@ -215,7 +227,15 @@ function Home({ serverDateTime }) {
               }
             });
           };
-
+          const openModal = (index) => {
+            const newModalStates = [...modalStates];
+            newModalStates[index] = true;
+            setModalStates(newModalStates);
+          };
+        
+          const closeModal = () => {
+            setModalStates(modalStates.map(() => false));
+          };
 
     return(
 
@@ -267,8 +287,8 @@ function Home({ serverDateTime }) {
                 <Td fontWeight={"bold"}>Nombre</Td>
                 <Td fontWeight={"bold"}>Apellido</Td>
                 <Td fontWeight={"bold"}>Rol</Td>
-                <Td fontWeight={"bold"}>Fecha de Inicio</Td>
-                <Td fontWeight={"bold"}>Fecha de Término</Td>
+                <Td fontWeight={"bold"}>Ver info</Td>
+
                 <Td fontWeight={"bold"}>Registrar Ingreso</Td>
                 <Td fontWeight={"bold"}>Modificar</Td>
                 <Td fontWeight={"bold"}>Eliminar</Td>
@@ -283,9 +303,38 @@ function Home({ serverDateTime }) {
              <Td >{Visita.rut}</Td>
              <Td >{Visita.nombre}</Td>
              <Td>{Visita.apellido}</Td>
+
              <Td>{Visita.rol}</Td>
-             <Td>{fechaSplit2(Visita.fechaInicio)}</Td>
-             <Td>{fechaSplit2(Visita.fechaTermino)}</Td>
+             <Td>
+
+<Button colorScheme="blue"   onClick={() => openModal(idx)}>Ver</Button>
+  <Modal closeOnOverlayClick={false} isOpen={modalStates[idx]} onClose={closeModal}>
+      <ModalOverlay />
+      <ModalContent>
+      <ModalHeader>Datos de la visita</ModalHeader>
+      <ModalCloseButton />
+      <ModalBody pb={6}>
+           <Text>Rut: {Visita.rut}</Text>
+           <Text>Nombre: {Visita.nombre} {Visita.apellido}</Text>   
+           <Text>Teléfono: {Visita.telefono}</Text>
+
+           <Text>Rol: {Visita.rol}</Text>
+
+          <Text>Fecha de inicio: {fechaSplit2(Visita.fechaInicio)}</Text>
+          <Text>Fecha de término: {fechaSplit2(Visita.fechaTermino)}</Text>
+          <Text>Observación: {Visita.observacion}</Text>
+
+      </ModalBody>
+
+      <ModalFooter>
+          <Button colorScheme='blue' onClick={closeModal}>Cerrar</Button>
+      </ModalFooter>
+      </ModalContent>
+  </Modal>
+
+
+</Td>
+
              <Td>
              <Button colorScheme='teal'   onClick={()=>RegistrarVisita(Visita.id_visita)}>Registrar</Button>
             </Td>
@@ -319,9 +368,3 @@ function Home({ serverDateTime }) {
     );
     }
     export default Home;
-   
-   
-   
-   
-   
-   

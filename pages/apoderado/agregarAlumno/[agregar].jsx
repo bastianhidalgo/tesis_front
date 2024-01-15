@@ -29,7 +29,7 @@ export const getServerSideProps = async (context)=>{
 const AgregarAlumno =({ data,datax }) => {
     const [modalApoderados, setModalApoderados] = useState([]);
     const [apoderado, setApoderado] = useState(data.apoderado);
-    const [cursoSeleccionado, setCursoSeleccionado] = useState('');
+    const [cursoSeleccionado, setCursoSeleccionado] = useState(1);
     const [modalAlumnos, setModalAlumnos] = useState([{
         id_alumno:'',
         rut:'',

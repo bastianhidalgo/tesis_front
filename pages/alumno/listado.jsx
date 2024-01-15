@@ -1,7 +1,7 @@
 import { React,useState, useEffect, useRef } from 'react';
 import { clienteAxios } from '../clienteAxios';
 import { useRouter } from 'next/router'
-import {  Drawer,Menu,
+import {  Drawer,Menu,FormControl,FormLabel,Select,
   DrawerBody,
   DrawerFooter,
   DrawerHeader,
@@ -22,6 +22,8 @@ import { format } from 'date-fns';
 
 function Apoderado({  }) {
     const [modalApoderados, setModalApoderados] = useState([]);
+    const [cursoSeleccionado, setCursoSeleccionado] = useState(1);
+    const [cursitos, setCursitos]= useState([]);
 
     const [alumnos, setAlumnos]= useState([{
         id_alumno:'',
@@ -38,7 +40,13 @@ function Apoderado({  }) {
       }]);
 
       const [busqueda, setBusqueda] = useState("");
-
+      const [modalAlumnos, setModalAlumnos] = useState([{
+        id_alumno:'',
+        rut:'',
+        nombre: '',
+        apellido:'',
+        curso: '',
+}]);
 
         const btnRef = useRef();
         const { isOpen, onOpen, onClose } = useDisclosure()
@@ -46,52 +54,79 @@ function Apoderado({  }) {
         const [modalStates, setModalStates] = useState([]); 
 
         const getAlumnos = async () => {
-            try {
-              const response = await clienteAxios.get("/alumnos/getall");
-              if (response.status === 200) {
-                const alumnosData = response.data.alumnos;
-                //console.log(alumnosData)
-
-                const alumnosConApoderados = await Promise.all(alumnosData.map(async (alumno) => {
-                  const responseApoderados = await clienteAxios.get(`/alumnoApoderado/getApoderados/${alumno.id_alumno}`);
-                  const apoderadosIds = responseApoderados.data.idsApoderados;
-                  const responseCursos = await clienteAxios.get(`/cursos/getone/${alumno.cursoId}`);
-                  const cursos = responseCursos.data.curso;
-
-                    setCursos(cursos)
-                    alumno.curso=cursos.nombre
-                  const apoderadosDetalles = await Promise.all(apoderadosIds.map(async (apoderadoId) => {
-                    const responseApoderado = await clienteAxios.get(`/apoderados/getone/${apoderadoId}`);
-                    return responseApoderado.data.apoderado;
-                  }));
-                  // Agregar la información de los alumnos al apoderado
-                  return { ...alumno, apoderados: apoderadosDetalles };
-                }));
-                setAlumnos(alumnosConApoderados);
+          try {
+             
+      
+              let response;
+      
+              if (cursoSeleccionado === '') {
+               
+                  response = await clienteAxios.get(`/alumnos/getAlumnos/${cursoSeleccionado}`);
+              } else {
+                  response = await clienteAxios.get(`/alumnos/getAlumnos/${cursoSeleccionado}`);
               }
-            } catch (error) {
-              console.error("Error fetching data:", error);
-            }
-          };
-         
-        useEffect(() => {
-  
-          getAlumnos();
+      
+              if (response.status === 200) {
+                  const alumnosData = response.data.alumnos;
+                  const alumnosConApoderados = await Promise.all(alumnosData.map(async (alumno) => {
+                      const responseApoderados = await clienteAxios.get(`/alumnoApoderado/getApoderados/${alumno.id_alumno}`);
+                      const apoderadosIds = responseApoderados.data.idsApoderados;
+                      const responseCursos = await clienteAxios.get(`/cursos/getone/${alumno.cursoId}`);
+                      const cursos = responseCursos.data.curso;
+      
+                      setCursos(cursos);
+                      alumno.curso = cursos.nombre;
+      
+                      const apoderadosDetalles = await Promise.all(apoderadosIds.map(async (apoderadoId) => {
+                          const responseApoderado = await clienteAxios.get(`/apoderados/getone/${apoderadoId}`);
+                          return responseApoderado.data.apoderado;
+                      }));
+      
+                      return { ...alumno, apoderados: apoderadosDetalles };
+                  }));
+      
+                  setAlumnos(alumnosConApoderados);
+              }
 
-        }, []);
+
+          } catch (error) {
+              console.error("Error fetching data:", error);
+              setModalAlumnos("")
+          }
+      };
+         
+      useEffect(() => {
+        getAlumnos();
+      }, [cursoSeleccionado]);
+    
+      useEffect(() => {
+        const fetchCursos = async () => {
+          try {
+            const response = await clienteAxios.get("/cursos/getall");
+            if (Array.isArray(response.data.cursos)) {
+              setCursitos(response.data.cursos);
+            } else {
+              console.error("Error: Los cursos no son un array", response.data.cursos);
+            }
+          } catch (error) {
+            console.error("Error al obtener cursos:", error);
+          }
+        };
+        fetchCursos();
+      }, []);
 
         const filtrar = (terminoBusqueda) => {
-          var resultadosBusqueda = alumnos.filter((apoderado) => {
+          var resultadosBusqueda = alumnos.filter((alumno) => {
             if (
-                alumnos.nombre
+                alumno.nombre
                 .toString()
                 .toLowerCase()
                 .includes(terminoBusqueda.toLowerCase()) ||
-                alumnos.apellido
+                alumno.apellido
                 .toString()
                 .toLowerCase()
                 .includes(terminoBusqueda.toLowerCase()) ||
-                alumnos.rut
+                alumno.rut
                 .toString()
                 .toLowerCase()
                 .includes(terminoBusqueda.toLowerCase()) 
@@ -138,16 +173,7 @@ function Apoderado({  }) {
             })
 
           }
-          /*const openModal = (index) => {
-            console.log('Datos del apoderado:', apoderados[index]); // Agrega esta línea
-            setModalAlumnos(apoderados[index]?.alumnos || []);
-            const newModalStates = [...modalStates];
-            newModalStates[index] = true;
-            setModalStates(newModalStates);
-          };
-          const closeModal = () => {
-            setModalStates(modalStates.map(() => false));
-          };*/
+
           const openModal = (index) => {
             console.log('Datos del alumno:', alumnos[index]); // Agrega esta línea
             setModalApoderados(alumnos[index]?.apoderados || []);
@@ -265,17 +291,41 @@ function Apoderado({  }) {
         <Heading textAlign="center" as="h4" size="xl"   mt="10">Listado Alumnos</Heading>
 
 
-          <div style={{marginTop:30}}>
-            <label className="me-2">Buscar:</label>
-            <Input
-              type="text"
-              className="form-control"
-              placeholder="Buscar por nombre, apellido, rut, teléfono"
-              value={busqueda}
-              onChange={handleSearchChange}
-            />
+        <Stack spacing={4} mt={10} direction="column">
+            <HStack>
+              <FormControl id="busqueda">
 
-   </div>
+              <FormLabel>Filtrar:</FormLabel>
+              <Input
+                type="text"
+                className="form-control"
+                placeholder="Buscar por nombre, apellido, rut"
+                value={busqueda}
+                onChange={handleSearchChange}
+              />
+  </FormControl>
+                <FormControl  id="curso">
+                <FormLabel>Filtrar:</FormLabel>
+
+                <Select
+                   onChange={(e) => {
+                    setCursoSeleccionado(e.target.value);
+                  }}
+    label="Curso"
+    name="curso"
+    placeholder="Seleccione curso"
+    value={cursoSeleccionado || ''} // Asegúrate de usar cursoSeleccionado
+    >
+    {cursitos.map((curso) => (
+        <option key={curso.id_curso} value={curso.id_curso}>
+            {curso.nombre}
+        </option>
+    ))}
+</Select>
+
+</FormControl>
+                </HStack>
+  </Stack>
         <Stack spacing={4} mt="10">
           <Table variant='striped'>
             <Thead>

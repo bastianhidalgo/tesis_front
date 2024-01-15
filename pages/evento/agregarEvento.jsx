@@ -1,4 +1,4 @@
-import { useState,useRef } from "react";
+import { useState,useRef ,useEffect } from "react";
 import { clienteAxios } from '../clienteAxios';
 import { useRouter } from 'next/router'
 import { Menu,Drawer,
@@ -22,11 +22,21 @@ const Evento = () =>{
   const [errorDescripcion, setErrorDescripcion] = useState('');
   const [errorFecha, setErrorFecha] = useState('');
   const [errorHora, setErrorHora] = useState('');
+  const [curso,setCurso]= useState({
+    id_curso:'', 
+    nombre:'',
+    descripcion:""
+  }) 
+  const [cursos, setCursos] = useState([]);
 
     const [evento,setEvento]= useState({
       tema:'',
       descripcion:'',
       fecha: ''
+    }) 
+    const [relacion,setRelacion]= useState({
+      cursoId:'',
+      eventoId:'',
     }) 
     const [hora,setHora]=useState(horaSplit(evento.fecha))
 
@@ -38,20 +48,36 @@ const Evento = () =>{
     }
 
     const router = useRouter()
-
+    useEffect(() => {
+      const fetchCursos = async () => {
+          try {
+              const response = await clienteAxios.get("/cursos/getall"); // Ajusta la ruta según tu API
+              setCursos(response.data.cursos);
+          } catch (error) {
+              console.error("Error al obtener los cursos:", error);
+          }
+      };
+  
+      fetchCursos();
+  }, []);
     
 
     const submitEvento = async (e) => {
-        e.preventDefault(); 
         try{
             console.log(hora)
             evento.fecha=fechaSplit(evento.fecha)+'T'+hora+':00.000Z'
             console.log(evento)
 
             const response = await clienteAxios.post("/eventos/create",evento);
-    
-    
-            if(response.status==200){
+            console.log(response)
+            if(relacion.cursoId!=''){
+            relacion.cursoId=parseInt(relacion.cursoId)
+            relacion.eventoId=response.data.evento.codigo_evento;
+           // console.log(relacion)
+
+            const respuesta = await clienteAxios.post("/cursoEvento/create",relacion);
+}
+            if(response.status==200 ){
             console.log("evento creado")
             Swal.fire({
                 icon:'success',
@@ -80,7 +106,12 @@ const Evento = () =>{
         console.log('Hora actualizada:', hora);
         setHora(hora);
       };
-
+      const handleChange2=(e) =>{
+        setCurso({
+            ... curso,
+            [e.target.name]: e.target.value
+        })
+    }
     return (
         
 <Container maxW="container.xl" mt={10}>
@@ -167,6 +198,25 @@ const Evento = () =>{
   </Text>
                 </FormControl>
                 </HStack>
+                <HStack>
+                <FormControl  id="curso">
+                <FormLabel>{"Ingrese curso que realiza el evento (opcional)"}</FormLabel>
+                <Select 
+    label="Curso evento"
+    onChange={(e) => setRelacion({ ...relacion, cursoId: e.target.value })}    name="curso"
+    placeholder="Seleccione curso"
+    value={relacion.cursoId}
+>
+    {cursos?.map((curso) => (
+        <option key={curso.id_curso} value={curso.id_curso}>
+            {curso.nombre}
+        </option>
+    ))}
+</Select>
+
+</FormControl>
+<FormControl></FormControl>
+</HStack>
             </Stack>
             <HStack style={{marginLeft:1100}}>
         

@@ -2,7 +2,7 @@ import { React,useState, useEffect, useRef } from 'react';
 import { clienteAxios } from '../clienteAxios';
 import { useRouter } from 'next/router'
 import {  Menu,Drawer,
-  DrawerBody,
+  DrawerBody,FormControl,FormLabel,Select,
   DrawerFooter,
   DrawerHeader,
   DrawerOverlay,
@@ -23,6 +23,9 @@ import { format } from 'date-fns';
 function Curso( ) {
     const [modalAlumnos, setModalAlumnos] = useState([]);
     const [modalEventos, setModalEventos] = useState([]);
+    const [cursoSeleccionado, setCursoSeleccionado] = useState('');
+
+      const [cursitos, setCursitos]= useState([]);
 
     const [cursos, setCursos]= useState([{
        id_curso:'',
@@ -134,7 +137,7 @@ function Curso( ) {
           setBusqueda(nuevoTermino);
 
           if (nuevoTermino === "") {
-            getApoderados(); 
+            getCursos()
           } else {
             filtrar(nuevoTermino);
           }
@@ -272,17 +275,22 @@ function Curso( ) {
         <Heading textAlign="center" as="h4" size="xl"   mt="10">Listado Cursos</Heading>
 
 
-          <div style={{marginTop:30}}>
-            <label className="me-2">Buscar:</label>
-            <Input
-              type="text"
-              className="form-control"
-              placeholder="Buscar por nombre, apellido, rut, teléfono"
-              value={busqueda}
-              onChange={handleSearchChange}
-            />
+        <Stack spacing={4} mt={10} direction="column">
+            <HStack>
+              <FormControl id="busqueda">
 
-   </div>
+              <FormLabel>Filtrar:</FormLabel>
+              <Input
+                type="text"
+                className="form-control"
+                placeholder="Buscar por nombre, descripción"
+                value={busqueda}
+                onChange={handleSearchChange}
+              />
+  </FormControl>
+
+                </HStack>
+  </Stack>
         <Stack spacing={4} mt="10">
           <Table variant='striped'>
             <Thead>

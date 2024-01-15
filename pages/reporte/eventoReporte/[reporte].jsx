@@ -67,7 +67,7 @@ const ReporteEvento =({ data }) => {
             const response = await clienteAxios.get(`/visita/getVisitas/${evento.codigo_evento}`);
             const idsVisitas = response.data.idsPersonas;
                 const respuesta = await clienteAxios.get(`/personas/getmany/${idsVisitas}`);
-
+            
             const personaConRoles = await Promise.all(
               respuesta.data.map(async (persona) => {
                 try{

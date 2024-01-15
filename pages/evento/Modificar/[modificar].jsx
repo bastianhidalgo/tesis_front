@@ -1,6 +1,6 @@
 import { useState, useEffect,useRef } from 'react'
 import {TextForm, InputForm}  from '../../../Components/InputForm'
-import { Menu,Drawer,
+import { Menu,Drawer,Select,
     DrawerBody,
     DrawerFooter,
     DrawerHeader,
@@ -15,17 +15,35 @@ import { fechaSplit,horaSplit } from '../../../Components/util';
 import {HamburgerIcon} from '@chakra-ui/icons'
 
 
-export const getServerSideProps = async (context)=>{
-    const id = context.query.modificar;
-    const response = await clienteAxios.get(`/eventos/getone/${id}`)
-    return{
-        props: {
-            data: response.data
-        }
-    }
-}
+export const getServerSideProps = async (context) => {
+  const id = context.query.modificar;
+  const response = await clienteAxios.get(`/eventos/getone/${id}`);
+  let respuesta;
+  let respuestaa = null;
 
-const EditarEvento =({ data }) => {
+  try {
+    respuesta = await clienteAxios.get(`/cursoEvento/getCursos/${id}`);
+    respuestaa = await clienteAxios.get(`/cursos/getone/${respuesta.data.idsCursos[0]}`);
+  } catch (error) {
+    console.error(error);
+  }
+
+  // Verifica si respuestaa existe antes de incluirla en las props
+  const props = {
+    data: response.data,
+  };
+
+  if (respuestaa) {
+    props.datax = respuestaa.data;
+  }
+
+  return {
+    props,
+  };
+};
+
+
+const EditarEvento =({ data,datax }) => {
     const [evento, setEvento] = useState(data.evento);
     const router = useRouter()
     const  eventoo  = router.query
@@ -35,7 +53,14 @@ const EditarEvento =({ data }) => {
     const [errorDescripcion, setErrorDescripcion] = useState('');
     const [errorFecha, setErrorFecha] = useState('');
     const [errorHora, setErrorHora] = useState('');
+    const [relacion,setRelacion]= useState({
+      cursoId:'',
+      eventoId:'',
+    }) 
+    const [cursoSeleccionado, setCursoSeleccionado] = useState(datax ? datax.curso.id_curso : "");
 
+    const [cursos, setCursos] = useState([]);
+ 
     const { isOpen, onOpen, onClose } = useDisclosure()
     const btnRef = useRef();
 
@@ -80,17 +105,110 @@ const EditarEvento =({ data }) => {
     
         return errors;
     };
+    useEffect(() => {
+     // console.log(cursoSeleccionado)
+      const fetchCursos = async () => {
+        try{
+          const cursos = await clienteAxios.get(`/cursos/getall/`); // Ajusta la ruta según tu API
+          setCursos(cursos.data.cursos)
+        }catch(error){
+          console.log(error)
+        }if(cursoSeleccionado){
+          try {
+            
+              const response = await clienteAxios.get(`/cursoEvento/getCursos/${evento.codigo_evento}`); // Ajusta la ruta según tu API
+              //console.log(response.data.idsCursos[0])
+              const idCurso=response.data.idsCursos[0]
+              try{
+              const respuesta = await clienteAxios.get(`/cursos/getone/${idCurso}`); // Ajusta la ruta según tu API
+              setCursoSeleccionado(respuesta.data.curso)  
+              }catch(error){
+                console.log(error)
+              }
+
+          } catch (error) {
+              console.error("Error al obtener los cursos:", error);
+          }}
+      };
+      
+      fetchCursos();
+  }, []);
 
     const submitEvento = async(e) =>{
       const errors = validateForm();
+      //console.log(datax.curso.id_curso)
 
       if (Object.keys(errors).length === 0) { 
         try{
                 evento.fecha=fechaSplit(evento.fecha)+'T'+hora+':00.000Z'
             
             const response = await clienteAxios.put(`/eventos/update/${evento.codigo_evento}`,evento);
-          console.log(evento)
-        if(response.status==200){
+
+            if (!cursoSeleccionado || cursoSeleccionado=='' ) {
+              try {
+                await clienteAxios.delete(`/cursoEvento/delete/${datax.curso.id_curso}/${evento.codigo_evento}`);
+              } catch (error) {
+                console.log(error);
+              }
+            } else {
+              try {
+                  
+                  await clienteAxios.delete(`/cursoEvento/delete/${cursoSeleccionado}/${evento.codigo_evento}`);
+                
+                }
+              
+               catch (error) {
+                console.log(error);
+              }
+              try{
+                relacion.cursoId = parseInt(cursoSeleccionado);
+                relacion.eventoId = evento.codigo_evento;
+                console.log(relacion)
+                await clienteAxios.post(`/cursoEvento/create/`, relacion);  // Cambiado de `create` a `post`
+
+              }catch(error){
+                console.log(error)
+              }
+            }
+const errors = validateForm();
+
+if (Object.keys(errors).length === 0) {
+  try {
+    evento.fecha = fechaSplit(evento.fecha) + 'T' + hora + ':00.000Z';
+
+    const response = await clienteAxios.put(`/eventos/update/${evento.codigo_evento}`, evento);
+
+    const cursoToDelete = datax ? datax.curso.id_curso : null;
+
+    // Elimina la relación existente si hay un curso para eliminar
+    if (cursoToDelete) {
+      try {
+        await clienteAxios.delete(`/cursoEvento/delete/${cursoToDelete}/${evento.codigo_evento}`);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+
+    // Si hay un nuevo curso seleccionado, crea una nueva relación
+    if (cursoSeleccionado) {
+      try {
+        relacion.cursoId = parseInt(cursoSeleccionado);
+        relacion.eventoId = evento.codigo_evento;
+        console.log(relacion);
+        await clienteAxios.post(`/cursoEvento/create/`, relacion);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  } catch (error) {
+    console.log("Error al actualizar el evento");
+    console.log(error);
+    // Handle error
+  }
+}
+
+
+          if(response.status==200){
             Swal.fire({
                 icon:'success',
                 title:'Evento actualizado',
@@ -110,6 +228,7 @@ const EditarEvento =({ data }) => {
               })
             }
           }
+          
           else {
             setErrorTema(errors.errorTema ||''); // Reinicia el mensaje de error
             setErrorDescripcion(errors.errorDescripcion ||'');
@@ -124,7 +243,9 @@ const EditarEvento =({ data }) => {
           };
 
         
-
+          const handleChangeCursoSeleccionado = (e) => {
+            setCursoSeleccionado(e.target.value);
+          };
     return (
     <Container maxW="container.xl" mt={10}>
                    <HStack>
@@ -197,7 +318,7 @@ const EditarEvento =({ data }) => {
 
     <Stack spacing={4} mt={10}>
         <HStack>
-        <InputForm isInvalid={errorTema !== ''} errors={errorTema} label="Tema" handleChange={handleChange}  value={evento.tema} name="tema" placeholder="Rut" type="text"   />
+        <InputForm isInvalid={errorTema !== ''} errors={errorTema} label="Tema" handleChange={handleChange}  value={evento.tema} name="tema" placeholder="Tema" type="text"   />
         <TextForm isInvalid={errorDescripcion !== ''} errors={errorDescripcion} label="Descripción" handleChange={handleChange} name="descripcion" placeholder="Descripción" type="text"  value={evento.descripcion}/>
         
         </HStack>
@@ -211,7 +332,30 @@ const EditarEvento =({ data }) => {
     {errorHora}
   </Text>
         </FormControl>
+
         </HStack>
+        <HStack>
+        <FormControl  id="curso">
+                <FormLabel>{"Ingrese curso que realiza el evento (opcional)"}</FormLabel>
+                <Select 
+    label="Curso evento"
+    onChange={handleChangeCursoSeleccionado}    
+    name="cursos"
+    placeholder="Seleccione curso"
+
+    value={cursoSeleccionado.id_curso}
+>
+    {cursos?.map((curso) => (
+        <option key={curso.id_curso} value={curso.id_curso}>
+            {curso.nombre}
+        </option>
+    ))}
+</Select>
+
+</FormControl>
+<FormControl></FormControl>
+</HStack>
+
     </Stack>
     <HStack style={{marginLeft:1100}}>
         <Button colorScheme="blue" mt={10} mb={10} onClick={submitEvento}>Modificar</Button>

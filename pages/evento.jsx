@@ -21,31 +21,59 @@ import {HamburgerIcon} from '@chakra-ui/icons'
 
 function Eventos() {
   const btnRef = useRef();
+  const [modalCursos, setModalCursos] = useState([]);
 
     const [eventos, setEventos]= useState([{
         codigo_evento:'',
         tema:'',
         descripcion: '',
-        fechaEvento:''
+        fechaEvento:'',
+        curso:[],
       }]);
       const [busqueda, setBusqueda] = useState("");
       const [visitas,setVisitas]=([]);
       const { isOpen, onOpen, onClose } = useDisclosure()
       const router = useRouter()
       const [modalStates, setModalStates] = useState([]); // Estado para gestionar la visibilidad de cada modal
+      const [modalStates2, setModalStates2] = useState([]); // Estado para gestionar la visibilidad de cada modal
 
 
 
         const getEventos = async () => {
           const response = await clienteAxios.get("/eventos/getall");
-          if(response.status==200){
-          setEventos(response.data.eventos)
-          }
+            const CursosData = response.data.eventos;
+
+            const eventoConCursos = await Promise.all(CursosData.map(async (evento) => {
+                const responseEventos = await clienteAxios.get(`/cursoEvento/getCursos/${evento.codigo_evento}`);
+                const cursosIds = responseEventos.data.idsCursos;
+
+                const cursoDetalles = await Promise.all(cursosIds.map(async (eventoId) => {
+                  try{
+                   const responseEvento = await clienteAxios.get(`/cursos/getone/${eventoId}`);
+                    return responseEvento.data.curso;
+
+                  }catch(error){
+                    console.log(error)
+                  }
+                }));
+
+                return { ...evento, curso: cursoDetalles };
+              }));
+
+            setEventos(eventoConCursos);
         }
         useEffect(() => {
           getEventos()
         },[])
-
+        const openModal = (index) => {
+          setModalCursos(eventos[index]?.curso || []);
+          const newModalStates = [...modalStates];
+          newModalStates[index] = true;
+          setModalStates(newModalStates);
+        };
+        const closeModal = () => {
+          setModalStates(modalStates.map(() => false));
+        };
         const handleSearchChange = (e) => {
           const nuevoTermino = e.target.value;
           setBusqueda(nuevoTermino);
@@ -83,7 +111,14 @@ function Eventos() {
             }).then(async(result) => {
               if (result.isConfirmed) {
 
-                await clienteAxios.delete(`/eventos/delete/${e}`)
+                try{
+                  await clienteAxios.delete(`/cursoEvento/deleteEventos/${e}`)
+                  await clienteAxios.delete(`/eventos/delete/${e}`)
+                }catch(error){
+                  console.log(error)
+                  await clienteAxios.delete(`/eventos/delete/${e}`)
+
+                }
 
                 Swal.fire(
                   'Borrado!',
@@ -96,14 +131,14 @@ function Eventos() {
 
           }
 
-          const openModal = (index) => {
-            const newModalStates = [...modalStates];
-            newModalStates[index] = true;
-            setModalStates(newModalStates);
+          const openModal3 = (index) => {
+            const newModalStates = [...modalStates2];
+            newModalStates2[index] = true;
+            setModalStates2(newModalStates);
           };
         
-          const closeModal = () => {
-            setModalStates(modalStates.map(() => false));
+          const closeModal3 = () => {
+            setModalStates2(modalStates2.map(() => false));
           };
 
     return(
@@ -233,6 +268,13 @@ eventos.map((Evento,idx)=>
                          <Text>Descripción: {Evento.descripcion}</Text>
                         <Text>Fecha: {fechaSplit2(Evento.fecha)}</Text>
                         <Text>Hora de inicio: {horaSplit(Evento.fecha)}</Text>
+                        <Text>Cursos que lo organizan:  </Text>
+                        <ul>
+    {modalCursos.map((curso, index) => (
+      <li key={index}>{curso.nombre} - {curso.descripcion}</li>
+      // Reemplaza "nombre" y "otraPropiedadDelCurso" con las propiedades reales de tus objetos de curso
+    ))}
+  </ul>
                     </ModalBody>
 
                     <ModalFooter>

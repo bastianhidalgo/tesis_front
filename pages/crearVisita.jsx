@@ -10,7 +10,7 @@ import {  Menu,Text,
     DrawerContent,
     DrawerCloseButton,
     VStack,useDisclosure,IconButton,Image,Button,Container,Heading,HStack, Select, Stack,FormLabel, InputLeftAddon,InputGroup ,FormControl  } from '@chakra-ui/react';
-import  {InputForm, TelForm} from '../Components/InputForm';
+import  {InputForm, TelForm, TextForm} from '../Components/InputForm';
 import Swal   from 'sweetalert2'
 import {HamburgerIcon,ChevronDownIcon,AddIcon, MinusIcon } from '@chakra-ui/icons'
 
@@ -42,7 +42,8 @@ const Visitas = () =>{
       apoderadoId:null,
       visitaId:null,
       fecha_inicio: '',
-      fecha_termino: ''
+      fecha_termino: '',
+      observacion:''
     }) 
     const [errors, setErrors] = useState('');
 
@@ -230,6 +231,9 @@ const Visitas = () =>{
                 <InputForm label="Fecha de Inicio" isInvalid={errorFechaInicio !== ''} errors={errorFechaInicio} handleChange={handleChange2} name="fecha_inicio" placeholder="Fecha de Inicio" type="date" value={persona.fecha_inicio}/>
                 <InputForm label="Fecha de Término" isInvalid={errorFechaTermino !== ''} errors={errorFechaTermino} handleChange={handleChange2} name="fecha_termino" placeholder="Fecha de Término" type="date"  value={persona.fecha_termino}/>
                 </HStack>
+                <HStack>
+                <TextForm label="Observación (opcional)"  handleChange={handleChange} name="observacion" placeholder="Observación" type="text" value={persona.observacion}/>
+</HStack>
             </Stack>
             <HStack style={{marginLeft:1100}}>
 

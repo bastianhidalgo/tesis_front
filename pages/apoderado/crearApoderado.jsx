@@ -9,7 +9,7 @@ import { Menu,Drawer,
     DrawerContent,
     DrawerCloseButton,
     VStack,useDisclosure,IconButton,Image,Button,Container,Heading,HStack, Select, Stack,FormLabel  } from '@chakra-ui/react';
-import  {InputForm, TelForm} from '../../Components/InputForm';
+import  {InputForm, TelForm,TextForm} from '../../Components/InputForm';
 import Swal   from 'sweetalert2'
 import {HamburgerIcon} from '@chakra-ui/icons'
 
@@ -29,6 +29,7 @@ const CrearApoderado = () =>{
       nombre:'',
       apellido: '',
       telefono: ''
+
       //rol:''
       
     }) 
@@ -39,7 +40,8 @@ const CrearApoderado = () =>{
       apoderadoId:null,
       visitaId:null,
       fecha_inicio: '',
-      fecha_termino: ''
+      fecha_termino: '',
+      observacion:''
     }) 
 
     const handleChange=(e) =>{
@@ -70,11 +72,10 @@ const CrearApoderado = () =>{
     }, []);
 
     const submitVisita = async (e) => {
-        e.preventDefault(); 
         try{
             persona.fecha_inicio=persona.fecha_inicio+'T00:00:00.000Z';
            persona.fecha_termino=persona.fecha_termino+'T00:00:00.000Z';
-            
+           apoderado.telefono="+569"+apoderado.telefono;
             persona.rol= parseInt(persona.rol)
 
             console.log(apoderado)
@@ -103,7 +104,7 @@ const CrearApoderado = () =>{
             }
         }catch(error){
             console.log("error al crear el apoderado")
-            console.log(e)
+            console.log(error)
             Swal.fire({
                 icon: 'error',
                 title: 'Oops...',
@@ -203,6 +204,9 @@ const CrearApoderado = () =>{
                 <InputForm isInvalid={errorFechaInicio !== ''} errors={errorFechaInicio} label="Fecha de Inicio" handleChange={handleChange2} name="fecha_inicio" placeholder="Fecha de Inicio" type="date" value={persona.fecha_inicio}/>
                 <InputForm isInvalid={errorFechaTermino !== ''} errors={errorFechaTermino} label="Fecha de Término" handleChange={handleChange2} name="fecha_termino" placeholder="Fecha de Término" type="date"  value={persona.fecha_termino}/>
                 </HStack>
+                <HStack>
+                <TextForm label="Observación (opcional)"  handleChange={handleChange2} name="observacion" placeholder="Observación" type="text" value={persona.observacion}/>
+</HStack>
             </Stack>
             <HStack style={{marginLeft:1100}}>
             <Button
@@ -232,7 +236,7 @@ const CrearApoderado = () =>{
   }}>
 Crear
   </Button>
-        <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../Home')}>Volver</Button>
+        <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('./listado ')}>Volver</Button>
     </HStack>
         </Container>
 

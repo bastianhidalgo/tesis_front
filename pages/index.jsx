@@ -1,6 +1,6 @@
 import React, {useState,useEffect} from 'react'
 import { useRouter } from 'next/router'
-import { Button, Box, Image, Input,InputGroup,InputRightElement, FormLabel } from '@chakra-ui/react';
+import { Text,Button, Box, Image, Input,InputGroup,InputRightElement, FormLabel, FormControl } from '@chakra-ui/react';
 import {InputForm} from '../Components/InputForm'
 
 function MostrarImagen() {
@@ -33,10 +33,27 @@ function MostrarImagen() {
 
 
 function Index() {
+  const [errorRut, setErrorRut] = useState('');
+  const [errorPassword, setErrorPassword] = useState('');
+  const [credencial, setCredencial] = useState(
+    {
+      rut:'',
+      password:''
+    }
+  );
 
   const router = useRouter()
   const [show, setShow] = React.useState(false)
   const handleClick = () => setShow(!show)
+
+
+  const handleChange = (e) => {
+    setCredencial({
+      ...credencial,
+      [e.target.name]: e.target.value,
+    });
+  };
+  
   return (
     <div style={{ position: 'relative', zIndex: 1 }}>
             <MostrarImagen/>
@@ -49,10 +66,14 @@ function Index() {
         style={{marginLeft:100,marginBottom:40}}
       />
 
-      <InputForm  label="Ingrese Rut"  name="rut" mt={10} placeholder="Rut" type="text"  ></InputForm>
-      <FormLabel>Ingrese Contraseña</FormLabel>
+      <InputForm isInvalid={errorRut !== ''} handleChange={handleChange}  value={credencial.rut}   label="Ingrese rut o alias"  name="rut" mt={10} placeholder="Credencial" type="text"  ></InputForm>
+      <FormControl id="password" isInvalid={errorPassword !== ''}>
+      <FormLabel >Ingrese Contraseña</FormLabel>
       <InputGroup size='md'>
       <Input
+        name="password"
+        onChange={handleChange}
+        value={credencial.password}
         pr='4.5rem'
         type={show ? 'text' : 'password'}
         placeholder='Contraseña'
@@ -62,7 +83,24 @@ function Index() {
           {show ? 'Esconder' : 'Mostrar'}
         </Button>
       </InputRightElement>
-    </InputGroup>    <Button style={{marginLeft:200}}  mt={10} colorScheme="blue" textAlign="center"  onClick={() => router.push('./Home')}>Entrar</Button>
+    </InputGroup> 
+   
+    </FormControl>
+    <FormControl><Text color="red" fontSize="m">
+  {errorPassword}
+</Text></FormControl>
+     
+       <Button style={{marginLeft:200}} mt={10} colorScheme="blue" textAlign="center" onClick={() => {
+   if ((!credencial.rut) || (credencial.rut != 'admin')||(!credencial.password) || (credencial.password != '1234')) {
+    setErrorRut('Falló la autenticación con la plataforma.');
+    setErrorPassword('Falló la autenticación con la plataforma.');
+  } else {
+    setErrorRut(''); // Reinicia el mensaje de error
+    setErrorPassword('');
+    router.push('./Home');
+  }
+}}>Entrar</Button>
+
 
     </Box>  
     </div>
