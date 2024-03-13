@@ -10,8 +10,9 @@ import { Menu,Drawer,
 import { useRouter } from 'next/router'
 import { clienteAxios } from '../../clienteAxios';
 import { fechaSplit2, horaSplit } from '../../../Components/util';
-import {HamburgerIcon} from '@chakra-ui/icons'
-
+import {HamburgerIcon,EditIcon,DeleteIcon} from '@chakra-ui/icons'
+import { Document, Page, View, StyleSheet,PDFViewer  } from '@react-pdf/renderer';
+import EventoPDF from './EventoPDF';
 
 export const getServerSideProps = async (context)=>{
   const fecha = context.query.fechaInicio;
@@ -26,6 +27,8 @@ export const getServerSideProps = async (context)=>{
 
 
 const ReporteEventoFechas =({ data }) => {
+  const [showPDF, setShowPDF] = useState(false);
+
   const [eventos, setEventos]= useState([{
     id_evento:'',
     tema:'',
@@ -95,6 +98,37 @@ useEffect(() => {
   
   }, []);
 
+  const deleteEvento = async(e) => {
+    Swal.fire({
+        title: '¿Seguro?',
+        text: "No podrás revertir esta decisión",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, borrar!'
+      }).then(async(result) => {
+        if (result.isConfirmed) {
+
+          try{
+            await clienteAxios.delete(`/cursoEvento/deleteEventos/${e}`)
+            await clienteAxios.delete(`/eventos/delete/${e}`)
+          }catch(error){
+            console.log(error)
+            await clienteAxios.delete(`/eventos/delete/${e}`)
+
+          }
+
+          Swal.fire(
+            'Borrado!',
+            'Evento ha sido borrado',
+            'success'
+          )
+          getEventos();
+        }
+      })
+
+    }
 
     return (
     <Container maxW="container.xl" mt={10}>
@@ -181,6 +215,8 @@ useEffect(() => {
               <Td fontWeight={"bold"}>Tema</Td>
                 <Td fontWeight={"bold"}>Fecha</Td>
                 <Td fontWeight={"bold"}>Hora</Td>
+                <Td fontWeight={"bold"}>Modificar</Td>
+                <Td fontWeight={"bold"}>Eliminar</Td>
               </Tr>
             </Thead>
             <Tbody border={"5"}>
@@ -190,11 +226,13 @@ useEffect(() => {
         <Td>{Evento.tema}</Td>
         <Td>{fechaSplit2(Evento.fecha)}</Td>
         <Td>{horaSplit(Evento.fecha)}</Td>
+        <Td ><IconButton style={{marginLeft:20}} onClick={()=>router.push(`../../evento/Modificar/${Evento.codigo_evento}`)} colorScheme='green'  icon={<EditIcon/>}></IconButton></Td>
+      <Td><IconButton style={{marginLeft:15}} colorScheme='red' onClick={()=>deleteEvento(Evento.codigo_evento)} icon={<DeleteIcon/>}></IconButton></Td>
       </Tr>
     ))
   ) : (
     <Tr>
-      <Td colSpan={4} textAlign="center">
+      <Td colSpan={5} textAlign="center">
         No hay eventos registrados.
       </Td>
     </Tr>
@@ -204,10 +242,19 @@ useEffect(() => {
         </Stack>
         <HStack>
        </HStack>
-    <HStack style={{marginLeft:1100}}>
+    <HStack style={{marginTop:40}}>
         
-        <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../evento_reporte')}>Volver</Button>
-    </HStack>
+        
+<Button colorScheme="blue" onClick={() => setShowPDF(true)}>Generar PDF</Button>
+  {showPDF && (
+    <PDFViewer width="1000" height="600">
+    <EventoPDF eventos={eventos} fechaInicio={fechaInicio} fechaTermino={fechaTermino}  />
+  </PDFViewer>
+  )}
+  <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../evento_reporte')}>Volver</Button>
+   
+
+      </HStack>
     </Container>
 )}
 

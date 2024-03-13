@@ -1,25 +1,49 @@
 import { useState,useEffect,useRef } from "react";
 import { clienteAxios } from './clienteAxios';
 import { useRouter } from 'next/router'
-import {  Menu,Text,
+import {  Menu,Text,Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
   Drawer,
     DrawerBody,
     DrawerFooter,
     DrawerHeader,
     DrawerOverlay,
     DrawerContent,
-    DrawerCloseButton,
-    VStack,useDisclosure,IconButton,Image,Button,Container,Heading,HStack, Select, Stack,FormLabel, InputLeftAddon,InputGroup ,FormControl  } from '@chakra-ui/react';
+    DrawerCloseButton,useDisclosure,IconButton,Image,Button,Container,Heading,HStack, Select, Stack,FormLabel ,FormControl  } from '@chakra-ui/react';
 import  {InputForm, TelForm, TextForm} from '../Components/InputForm';
 import Swal   from 'sweetalert2'
-import {HamburgerIcon,ChevronDownIcon,AddIcon, MinusIcon } from '@chakra-ui/icons'
+import {HamburgerIcon,ChevronDownIcon,AddIcon, MinusIcon,EditIcon } from '@chakra-ui/icons'
 
-import  {UseRegexRut} from '../Components/util';
+import  {UseRegexRut,Fn,fechaSplit2} from '../Components/util';
 
 
 const Visitas = () =>{
-    const { isOpen, onOpen, onClose } = useDisclosure()
-    const btnRef = useRef();
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCreateRolModalOpen, setIsCreateRolModalOpen] = useState(false);
+
+  const handleMenuOpen = () => {
+    setIsMenuOpen(true);
+  };
+
+  const handleMenuClose = () => {
+    setIsMenuOpen(false);
+  };
+
+  const handleCreateRolModalOpen = () => {
+    setIsCreateRolModalOpen(true);
+  };
+
+  const handleCreateRolModalClose = () => {
+    setIsCreateRolModalOpen(false);
+  };
+  const [errorDescripcion, setErrorDescripcion] = useState('');
+
     const [errorNombre, setErrorNombre] = useState('');
     const [errorApellido, setErrorApellido] = useState('');
     const [errorRut, setErrorRut] = useState('');
@@ -27,6 +51,14 @@ const Visitas = () =>{
     const [errorRol, setErrorRol] = useState('');
     const [errorFechaInicio, setErrorFechaInicio] = useState('');
     const [errorFechaTermino, setErrorFechaTermino] = useState('');
+
+    const [modalStates, setModalStates] = useState([]); // Estado para gestionar la visibilidad de cada modal
+    const { isOpen, onOpen, onClose } = useDisclosure()
+
+    const btnRef = useRef();
+    const [rol,setRol]= useState({
+      descripcion:''
+    }) 
 
     const [visita,setVisita]= useState({
       rut:'',
@@ -59,7 +91,12 @@ const Visitas = () =>{
           [e.target.name]: e.target.value
       })
   }
-
+  const handleChangeRol=(e) =>{
+    setRol({
+        ... rol,
+        [e.target.name]: e.target.value
+    })
+}
 
   
     const router = useRouter()
@@ -77,6 +114,39 @@ const Visitas = () =>{
         fetchRoles();
     }, []);
 
+    const submitRol= async () => {
+       
+      try{
+         
+           const response = await clienteAxios.post("/rol/create",rol);
+
+         
+        if(response.status==200){
+          console.log("Rol creado")
+          Swal.fire({
+              icon:'success',
+              title:'Excelente!',
+              showConfirmButton: true,
+              text: 'Rol registrado' 
+          })
+          handleCreateRolModalClose()
+          router.reload()
+
+          }
+      }catch(error){
+          console.log("error al crear el rol")
+          Swal.fire({
+              icon: 'error',
+              title: 'Oops...',
+              text: 'Error al crear el rol',
+              footer: 'Comunicarse con administración'
+            })
+
+          }
+
+    }
+
+
     const submitVisita = async () => {
        
         try{
@@ -86,15 +156,24 @@ const Visitas = () =>{
             persona.rol= parseInt(persona.rol)
          //   console.log(visita)
        //     console.log(persona)
-
+      
              const response = await clienteAxios.post("/usuarios/create",visita);
+
             const variable = await clienteAxios.get(`/usuarios/comparar/${visita.rut}`)
            // console.log(variable)
            //  console.log(variable.data.visita[0].id_visita)
              persona.visitaId=variable.data.visita[0].id_visita
          //    console.log(persona)
+          if(response.status==200){
+                         
+            try{
+            const respuesta= await clienteAxios.post("/personas/create",persona);
 
-             const respuesta= await clienteAxios.post("/personas/create",persona);
+            }catch(error){
+              console.log(error)
+            }
+
+          }
 
 
             if(respuesta.status==200 && response.status==200){
@@ -113,12 +192,12 @@ const Visitas = () =>{
                 icon: 'error',
                 title: 'Oops...',
                 text: 'Error al registrar la visita',
-                footer: 'Comunicarse con administración'
+                footer: 'Verifica que los datos ingresados esten correctos'
               })
 
             }
-      }
 
+      }
     return (
         
 <Container maxW="container.xl" mt={10}>
@@ -126,7 +205,7 @@ const Visitas = () =>{
        <IconButton
       icon={<HamburgerIcon />}
       aria-label="Abrir menú"
-      onClick={onOpen}
+      onClick={handleMenuOpen}
       colorScheme='red'
     />
          <Image  mt={10} 
@@ -139,9 +218,9 @@ const Visitas = () =>{
             <Heading as={"h1"} className="header"  size={"2xl"} textAlign="center" mt="10">Crear Visita</Heading>
             <Drawer
         colorScheme='teal' 
-        isOpen={isOpen}
+        isOpen={isMenuOpen}
         placement='left'
-        onClose={onClose}
+        onClose={handleMenuClose}
         finalFocusRef={btnRef}
                >
         <DrawerOverlay />
@@ -185,7 +264,7 @@ const Visitas = () =>{
           <DrawerFooter borderTopWidth='1px'>
           <Button style={{marginRight:50}} colorScheme='red' mr={3} onClick={() => router.push('./')}>Cerrar sesión</Button>
 
-            <Button colorScheme='blue' mr={3} onClick={onClose}>Cerrar</Button>
+            <Button colorScheme='blue' mr={3} onClick={handleMenuClose}>Cerrar</Button>
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
@@ -226,6 +305,44 @@ const Visitas = () =>{
   {errorRol}
 </Text>
 </FormControl>
+<HStack>
+<IconButton onClick={handleCreateRolModalOpen } icon={<AddIcon />} style={{marginBottom:14}} 
+      colorScheme='blue'> </IconButton>
+        <Modal  isOpen={isCreateRolModalOpen} onClose={handleCreateRolModalClose}>
+      <ModalOverlay />
+      <ModalContent>
+      <ModalHeader>Datos del rol</ModalHeader>
+      <ModalCloseButton />
+      <ModalBody pb={6}>
+           
+      <InputForm label="Ingrese Rol" isInvalid={errorDescripcion !== ''} errors={errorDescripcion} handleChange={handleChangeRol} name="descripcion" placeholder="Nombre rol" type="text" value={rol.descripcion}/>
+               
+      </ModalBody>
+
+      <ModalFooter>
+      <Button style={{marginRight:20}} colorScheme='blue'
+    
+   onClick={() => {
+   if (!rol.descripcion) {
+      setErrorDescripcion('Por favor, el nombre del rol es requerido.');
+    } else {
+     
+      setErrorDescripcion('');
+      
+      submitRol();
+      onClose()
+    }
+  }}>Agregar</Button>
+
+          <Button colorScheme='blue' onClick={handleCreateRolModalClose}>Cerrar</Button>
+      </ModalFooter>
+      </ModalContent>
+  </Modal>
+      </HStack>
+<HStack>
+<IconButton onClick={()=> router.push('./roles')} icon={<EditIcon />} style={{marginBottom:14}} 
+      colorScheme='green'>Editar</IconButton>
+      </HStack>
                 </HStack>
                 <HStack>
                 <InputForm label="Fecha de Inicio" isInvalid={errorFechaInicio !== ''} errors={errorFechaInicio} handleChange={handleChange2} name="fecha_inicio" placeholder="Fecha de Inicio" type="date" value={persona.fecha_inicio}/>
@@ -254,6 +371,9 @@ const Visitas = () =>{
       setErrorFechaInicio('Por favor, la fecha de inicio es requerida.');
     } if (!persona.fecha_termino) {
       setErrorFechaTermino('Por favor, la fecha de término es requerida.');
+    }  if (!Fn.validaRut(visita.rut)) {
+      console.log('El RUT no es válido.')
+      setErrorRut("Rut invalido")
     } else {
       setErrorNombre(''); // Reinicia el mensaje de error
       setErrorApellido('');

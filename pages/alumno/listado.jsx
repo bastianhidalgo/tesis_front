@@ -20,7 +20,7 @@ import {HamburgerIcon} from '@chakra-ui/icons'
 import { fechaSplit2 } from '../../Components/util';
 import { format } from 'date-fns';
 
-function Apoderado({  }) {
+function Alumnos({  }) {
     const [modalApoderados, setModalApoderados] = useState([]);
     const [cursoSeleccionado, setCursoSeleccionado] = useState(1);
     const [cursitos, setCursitos]= useState([]);
@@ -52,6 +52,40 @@ function Apoderado({  }) {
         const { isOpen, onOpen, onClose } = useDisclosure()
         const router = useRouter()
         const [modalStates, setModalStates] = useState([]); 
+
+        const deleteAlumno = async(e) => {
+
+          Swal.fire({
+              title: '¿Seguro?',
+              text: "No podrás revertir esta decisión",
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonColor: '#3085d6',
+              cancelButtonColor: '#d33',
+              confirmButtonText: 'Sí, borrar!'
+            }).then(async(result) => {
+              if (result.isConfirmed) {            
+                
+
+                                
+                  try{
+
+                await clienteAxios.delete(`/alumnos/delete/${e}`)
+                  }catch(error){
+                    console.log(error);
+                             }
+
+                Swal.fire(
+                  'Borrado!',
+                  'Alumno ha sido borrado',
+                  'success'
+                )
+                getAlumnos();
+              }
+            })
+
+          }
+
 
         const getAlumnos = async () => {
           try {
@@ -232,6 +266,7 @@ function Apoderado({  }) {
       <Heading  as="h1" size="xl" className="header" textAlign="center"mt="10" >Alumnos CSPN Concepción</Heading>
       </Box>
 
+      <Button   colorScheme='blue' mt="10" onClick={() => router.push('./crearAlumno')}>Crear Alumno</Button>
 
 
       <Drawer
@@ -336,11 +371,14 @@ function Apoderado({  }) {
                 <Td fontWeight={"bold"}>Curso</Td>
 
                 <Td fontWeight={"bold"}>Ver Apoderado(s)</Td>
+                <Td fontWeight={"bold"}>Modificar</Td>
+                <Td fontWeight={"bold"}>Eliminar</Td>
+
               </Tr>
             </Thead>
             <Tbody border={"5"}>
   
-            {alumnos && alumnos.length  > 0 ? (
+            {alumnos != undefined && alumnos.length >= 1 ?  (
             alumnos.map((Alumno,idx)=>
               (
                 <Tr key={idx}>
@@ -376,8 +414,15 @@ function Apoderado({  }) {
                     </ModalFooter>
                     </ModalContent>
                 </Modal></Td>
-            
-            
+                <Td>
+
+<Button colorScheme="green"   onClick={()=>router.push(`./modificar/${Alumno.id_alumno}`)}>Modificar</Button>
+</Td>
+<Td>
+
+<Button colorScheme="red" onClick={()=>deleteAlumno(Alumno.id_alumno)} style={{marginLeft:10}}  >Eliminar</Button>
+
+</Td>
               
 
      </Tr>
@@ -385,8 +430,8 @@ function Apoderado({  }) {
 )
 ): (
   <Tr>
-    <Td colSpan={9} textAlign="center">
-      No hay alumnos registrados.
+<Td colSpan={7} textAlign="center">
+        No hay alumnos registrados.
     </Td>
   </Tr>
 )
@@ -399,4 +444,4 @@ function Apoderado({  }) {
        
     );
     }
-    export default Apoderado;
+    export default Alumnos;

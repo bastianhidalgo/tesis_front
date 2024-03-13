@@ -12,9 +12,10 @@ import { useRouter } from 'next/router'
 import Swal from 'sweetalert2'
 import { clienteAxios } from '../../clienteAxios';
 import { fechaSplit2, horaSplit } from '../../../Components/util';
-import {HamburgerIcon} from '@chakra-ui/icons'
+import {HamburgerIcon,EditIcon,DeleteIcon} from '@chakra-ui/icons'
 import Apoderado from '@/pages/alumno/listado'
-
+import { Document, Page, View, StyleSheet,PDFViewer  } from '@react-pdf/renderer';
+import EventoPDF from './EventoPDF';
 
 export const getServerSideProps = async (context)=>{
     const id = context.query.reporte;
@@ -27,6 +28,8 @@ export const getServerSideProps = async (context)=>{
 }
 
 const ReporteEvento =({ data }) => {
+  const [showPDF, setShowPDF] = useState(false);
+
     const [evento, setEvento] = useState(data.evento);
     const router = useRouter()
     const btnRef = useRef();
@@ -77,7 +80,6 @@ const ReporteEvento =({ data }) => {
                     const personaResponse = await clienteAxios.get(`/personas/getonebyvisita/${persona.visitaId}`);
                     const personaVisita=personaResponse.data.persona[0].visita
                     personaVisita.rol= rolResponse.data.rol.descripcion
-                    console.log(rolResponse)
                     return personaVisita
                     
                   }else{
@@ -106,7 +108,54 @@ const ReporteEvento =({ data }) => {
       }
     }, []);
     
-
+    const deleteIngreso = async (visita) => {
+      Swal.fire({
+          title: '¿Seguro?',
+          text: "No podrás revertir esta decisión",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'Sí, borrar!'
+      }).then(async (result) => {
+          if (result.isConfirmed) {
+              try {
+                console.log(visita)
+                const idPersona = visita.id_apoderado ? visita.id_apoderado : visita.id_visita;
+                const endpoint = visita.id_apoderado ? `/personas/getonebyapoderado/${visita.id_apoderado}` : `/personas/getonebyvisita/${visita.id_visita}`;
+                
+                const respuesta = await clienteAxios.get(endpoint);
+                
+                const response = await clienteAxios.delete(`/visita/delete/${evento.codigo_evento}/${respuesta.data.persona[0].id_persona}`);
+                
+                  if (response.status === 200) {
+                    Swal.fire(
+                        'Borrado!',
+                        'El ingreso ha sido eliminado',
+                        'success'
+                    ).then(() => {
+                        // Recargar la página después de cerrar el mensaje de confirmación
+                        router.reload();
+                    });
+                }else {
+                      Swal.fire({
+                          icon: 'error',
+                          title: 'Oops...',
+                          text: 'Error al eliminar el ingreso',
+                      });
+                  }
+              } catch (error) {
+                  console.error(error);
+                  Swal.fire({
+                      icon: 'error',
+                      title: 'Oops...',
+                      text: 'Error al eliminar el ingreso',
+                      footer: 'Ha ocurrido un error inesperado al intentar eliminar el ingreso'
+                  });
+              }
+          }
+});
+  };
 
     return (
     <Container maxW="container.xl" mt={10}>
@@ -205,6 +254,9 @@ const ReporteEvento =({ data }) => {
                 <Td fontWeight={"bold"}>Nombre</Td>
                 <Td fontWeight={"bold"}>Apellido</Td>
                 <Td fontWeight={"bold"}>Rol</Td>
+                <Td fontWeight={"bold"}>Motivo</Td>
+
+                <Td fontWeight={"bold"}>Eliminar</Td>
               </Tr>
             </Thead>
             <Tbody border={"5"}>
@@ -215,11 +267,14 @@ const ReporteEvento =({ data }) => {
         <Td>{Visita.nombre}</Td>
         <Td>{Visita.apellido}</Td>
         <Td>{Visita.rol}</Td>
+        <Td>{Visita.rol}</Td>
+
+        <Td><IconButton style={{marginLeft:15}}   onClick={() => deleteIngreso(Visita)}  colorScheme='red' icon={<DeleteIcon/>}></IconButton></Td>
       </Tr>
     ))
   ) : (
     <Tr>
-      <Td colSpan={4} textAlign="center">
+      <Td colSpan={5} textAlign="center">
         No hay asistentes registrados.
       </Td>
     </Tr>
@@ -228,10 +283,19 @@ const ReporteEvento =({ data }) => {
           </Table>
         </Stack>
 
-    <HStack style={{marginLeft:1100}}>
+    <HStack style={{marginTop:40}}>
         
-        <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../evento_reporte')}>Volver</Button>
-    </HStack>
+   
+   
+<Button colorScheme="blue" onClick={() => setShowPDF(true)}>Generar PDF</Button>
+  {showPDF && (
+    <PDFViewer width="1000" height="600">
+    <EventoPDF evento={evento} visitas={visitas}  />
+  </PDFViewer>
+  )}
+          <Button colorScheme="blue" mt={10} mb={10} onClick={()=> router.push('../evento_reporte')}>Volver</Button>
+
+      </HStack>
     </Container>
 )}
 

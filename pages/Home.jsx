@@ -17,12 +17,24 @@ import {  Modal,Text,
   useDisclosure,Image,Box,Button,Container,Heading, Stack, Table, Thead, Tr, Td,Tbody ,Input, HStack,IconButton, VStack} from '@chakra-ui/react';
 import Swal   from 'sweetalert2'
 import {HamburgerIcon} from '@chakra-ui/icons'
-import { fechaSplit2,fechaSplit,    UseRegexRut} from '../Components/util';
+import { fechaSplit2,fechaSplit,    validarRut} from '../Components/util';
 import { format } from 'date-fns';
 import {ComponentDrawer} from '../Components/Drawer'
+import {InputForm} from '../Components/InputForm'
 
 function Home({ serverDateTime }) {
+  const [isCreateIngresoModalOpen, setIsCreateIngresoModalOpen] = useState(false);
+  const [personaSeleccionada, setPersonaSeleccionada] = useState(null);
+  const [isIngresarModalOpen, setIsIngresarModalOpen] = useState(false);
 
+  const handlePersonaSeleccionada = (visita) => {
+    console.log(visita)
+    setPersonaSeleccionada(visita);
+    onOpenIngresarModal();
+  };
+  const onOpenIngresarModal = () => {
+    setIsIngresarModalOpen(true);
+  };
     const [visitas, setVisitas]= useState([{
         id_visita:'',
         rut:'',
@@ -37,10 +49,13 @@ function Home({ serverDateTime }) {
       const [modalStates, setModalStates] = useState([]); // Estado para gestionar la visibilidad de cada modal
 
       const [busqueda, setBusqueda] = useState("");
+      const [motivo, setMotivo] = useState("");
+
       const [currentDateTime, setCurrentDateTime] = useState(serverDateTime);
       const [ingreso,setIngreso]= useState({
         fechaIngreso: '',
-        personaId:''
+        personaId:'',
+        motivo:''
       })
       const [rol,setRol]= useState({
         descripcion:''
@@ -53,6 +68,9 @@ function Home({ serverDateTime }) {
 
       
         const getVisitas = async () => {
+          
+          const responseAlumnos = await clienteAxios.get(`/alumnos/getAlumnos/4`);
+          console.log(responseAlumnos)
           try {
             const response = await clienteAxios.get("/usuarios/getall");
         
@@ -93,9 +111,16 @@ function Home({ serverDateTime }) {
             console.error("Error fetching data:", error);
           }
         };
-
+        const handleChangeMotivo = (e) => {
+          setIngreso({
+            ...ingreso,
+            motivo: e.target.value
+          });
+        };
+        
         useEffect(() => {
           const intervalId = setInterval(() => {
+
             const now = new Date();
             const formattedDateTime = format(now, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"); // Formatear la fecha
             setHoraactual(formattedDateTime);
@@ -145,7 +170,12 @@ function Home({ serverDateTime }) {
             filtrar(nuevoTermino);
           }
         };
-
+        const handleCreateIngresoModalOpen = () => {
+          setIsCreateIngresoModalOpen(true);
+        };
+        const handleCreateIngresoModalClose = () => {
+          setIsCreateIngresoModalOpen(false);
+        };
 
         const deleteVisita = async(e) => {
           const response = await  clienteAxios.get(`/personas/getonebyvisita/${e}`)
@@ -174,59 +204,55 @@ function Home({ serverDateTime }) {
 
           }
 
-          const RegistrarVisita = async (idVisita) => {
-            Swal.fire({
-              title: '¿Seguro?',
-              icon: 'warning',
-              showCancelButton: true,
-              confirmButtonColor: '#3085d6',
-              cancelButtonColor: '#d33',
-              confirmButtonText: 'Sí, registrar'
-            }).then(async (result) => {
-              if (result.isConfirmed) {
-                // Obtener información de la visita
+         const RegistrarVisita = async (personaSeleccionadaId) => {
+          onCloseIngresarModal()
+  Swal.fire({
+    title: '¿Seguro?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Sí, registrar'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      const response = await clienteAxios.get(`/personas/getonebyvisita/${personaSeleccionadaId}`);
+      const visita = response.data.persona[0];
 
+      const hora = new Date();
+      const formattedDateTime = format(hora, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+      setHoraactual(formattedDateTime);
 
-                const response = await clienteAxios.get(`/personas/getonebyvisita/${idVisita}`);
-                const visita = response.data.persona[0];
-               // console.log(response)
-                // Crear una nueva entrada en la tabla de fechas
-                const hora= new Date()
-                const year = hora.getFullYear(); // Año (cuatro dígitos)
-                const month = hora.getMonth() + 1; // Mes (ten en cuenta que los meses en JavaScript van de 0 a 11)
-                const day = hora.getDate(); // Día del mes
-                const hours = hora.getHours(); // Horas (formato de 24 horas)
-                const minutes = hora.getMinutes(); // Minutos
-                const seconds = hora.getSeconds(); // Segundos
+      const nuevoIngreso = {
+        fechaIngreso: formattedDateTime,
+        personaId: visita.id_persona,
+        motivo: ingreso.motivo // Utiliza el valor actualizado de ingreso.motivo
+      };
 
-                const formattedDateTime = format(hora, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-                setHoraactual(formattedDateTime)
-                //console.log(visita.fecha_inicio)
-                ingreso.fechaIngreso=formattedDateTime
-                ingreso.personaId=visita.id_persona
-              console.log(fechaSplit(visita.fecha_termino))
-                if((formattedDateTime>=visita.fecha_inicio) && (formattedDateTime<=`${fechaSplit(visita.fecha_termino)}T23:59:59.999Z`)){
-                // Crear una nueva entrada en la tabla de ingresos
-                const nuevoIngreso = await clienteAxios.post("/ingresos/create", ingreso);
-                console.log(nuevoIngreso)
-                Swal.fire(
-                  'Registrada!',
-                  'Visita ha sido registrada',
-                  'success'
-                );
-                           // Actualizar la lista de visitas después del registro
-                getVisitas();}
-                else {
-                  Swal.fire({
-                    icon: 'error',
-                    title: 'Oops...',
-                    text: 'Error al ingresar la visita.',
-                    footer: ' Revisar fechas de inicio y de término'
-                  })
-                  }
-              }
-            });
-          };
+      if ((formattedDateTime >= visita.fecha_inicio) && (formattedDateTime <= `${fechaSplit(visita.fecha_termino)}T23:59:59.999Z`)) {
+        const response = await clienteAxios.post("/ingresos/create", nuevoIngreso);
+        console.log(response);
+        Swal.fire(
+          'Registrada!',
+          'Visita ha sido registrada',
+          'success'
+        );
+        getVisitas();
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Oops...',
+          text: 'Error al ingresar la visita.',
+          footer: ' Revisar fechas de inicio y de término'
+        });
+      }
+    }
+  });
+};
+const onCloseIngresarModal = () => {
+  setIsIngresarModalOpen(false);
+  setPersonaSeleccionada(null); // Reiniciar el rol seleccionado cuando se cierra el modal
+};
+
           const openModal = (index) => {
             const newModalStates = [...modalStates];
             newModalStates[index] = true;
@@ -263,6 +289,7 @@ function Home({ serverDateTime }) {
       <ComponentDrawer isOpen={isOpen} onClose={onClose} btnRef={btnRef} />
 
       <Button colorScheme='blue'  mt="10" onClick={() => router.push('./crearVisita')}>Crear Visita</Button>
+      <Button colorScheme='blue' style={{marginLeft:20}}  mt="10" onClick={() => router.push('./roles')}>Roles</Button>
 
        
         <Heading textAlign="center" as="h4" size="xl"   mt="10">Listado Visitas</Heading>
@@ -336,7 +363,28 @@ function Home({ serverDateTime }) {
 </Td>
 
              <Td>
-             <Button colorScheme='teal'   onClick={()=>RegistrarVisita(Visita.id_visita)}>Registrar</Button>
+             <Button colorScheme='teal'  onClick={() => handlePersonaSeleccionada(Visita)}>Registrar</Button>
+             <Modal  isOpen={isIngresarModalOpen} onClose={onCloseIngresarModal}>
+      <ModalOverlay />
+      <ModalContent>
+      <ModalHeader>Datos del ingreso</ModalHeader>
+      <ModalCloseButton />
+      <ModalBody pb={6}>
+           
+      <InputForm label="Ingrese Motivo" handleChange={handleChangeMotivo} name="descripcion" placeholder="Nombre rol" type="text" value={personaSeleccionada ? personaSeleccionada.motivo : ''}/>
+               
+      </ModalBody>
+
+      <ModalFooter>
+      <Button style={{marginRight:20}} colorScheme='blue'           
+       onClick={() => {RegistrarVisita(personaSeleccionada.id_visita);
+    
+  }}>Registrar</Button>
+
+          <Button colorScheme='blue' onClick={onCloseIngresarModal}>Cerrar</Button>
+      </ModalFooter>
+      </ModalContent>
+  </Modal>
             </Td>
              <Td>
 

@@ -11,7 +11,7 @@ import { Menu,  Drawer,Text,
 import { useRouter } from 'next/router'
 import Swal from 'sweetalert2'
 import { clienteAxios } from '../../clienteAxios';
-import { fechaSplit, UseRegexRut,useRegexTelefono } from '../../../Components/util';
+import { fechaSplit, UseRegexRut,useRegexTelefono,Fn } from '../../../Components/util';
 import {HamburgerIcon} from '@chakra-ui/icons'
 
 
@@ -155,7 +155,12 @@ const Editar =({ data,datax,datazo }) => {
           if (!persona.fecha_termino) {
             errors.errorFechaTermino=('Por favor, la fecha de término es requerida.')
       
-          }
+          }if (!Fn.validaRut(visita.rut)) {
+            console.log('El RUT no es válido.')
+            setErrorRut("Rut invalido")
+            errors.errorRut=('Por favor, ingrese rut valido.')
+
+          } 
           // Agrega más validaciones según sea necesario
       
           return errors;

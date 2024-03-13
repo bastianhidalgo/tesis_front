@@ -9,7 +9,7 @@ import { Menu,Drawer,
   DrawerOverlay,
   DrawerContent,
   DrawerCloseButton,
-  useDisclosure,IconButton,VStack,Text,FormControl,FormLabel,Image,Button,Container,Heading,HStack, Stack, Table, Thead, Tr, Td,Tbody ,Input} from '@chakra-ui/react';
+  useDisclosure,Text,IconButton,VStack,FormControl,FormLabel,Image,Button,Container,Heading,HStack, Stack, Table, Thead, Tr, Td,Tbody ,Input} from '@chakra-ui/react';
 import Swal   from 'sweetalert2'
 import { fechaSplit2,horaSplit,fechaSplit } from '../../Components/util';
 import {HamburgerIcon} from '@chakra-ui/icons'

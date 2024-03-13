@@ -9,10 +9,10 @@ import {  Menu,Drawer,
   DrawerOverlay,
   DrawerContent,
   DrawerCloseButton,IconButton,VStack,
-  useDisclosure,Image,Button,Container,Heading,HStack, Stack, Table, Thead, Tr, Td,Tbody ,Textarea, Text,Input} from '@chakra-ui/react';
+  useDisclosure,Image,Button,Container,Heading,HStack,Select, Stack, Table, Thead, Tr, Td,Tbody ,Textarea, Text,Input} from '@chakra-ui/react';
 import Swal   from 'sweetalert2'
 import { fechaSplit2 } from '../../../Components/util';
-import {HamburgerIcon} from '@chakra-ui/icons'
+import {HamburgerIcon,CheckIcon} from '@chakra-ui/icons'
 
 
 export const getServerSideProps = async (context)=>{
@@ -26,6 +26,11 @@ export const getServerSideProps = async (context)=>{
 }
 
 const Asistencia =({ data }) => {
+  const [busqueda, setBusqueda] = useState("");
+  const [tipoSeleccionado, setTipoSeleccionado] = useState(''); // Estado para almacenar la selección del usuario
+  const [visitass, setVisitass] = useState([]); // Estado para almacenar las visitas obtenidas del servidor
+    const [apoderadoss, setApoderadoss] = useState([]);
+
   const [evento, setEvento] = useState(data.evento);
   const [estado, setEstado] = useState('');
   const [rut,setRut]=useState('');
@@ -56,6 +61,7 @@ const Asistencia =({ data }) => {
         },
       ]);
 
+
       const { isOpen, onOpen, onClose } = useDisclosure()
       const btnRef = useRef();
     const handleInputChange = (event) => {
@@ -71,75 +77,92 @@ const Asistencia =({ data }) => {
         setRut(event.target.value);
       };
 
-
-
-         const buscarApoderados = async (rut) => {
-         try {
-          const respuesta = await clienteAxios.get(`/apoderados/comparar/${rut}`);
-
-          setVisitas([respuesta.data.apoderado[0]]);
-          return 0;
-        } catch (errorApoderados) {
-          console.error('Error al cargar visitas desde apoderados:', errorApoderados);
-          setVisitas([]);
-          // Maneja el error si la segunda solicitud no tiene éxito
+      const filtrarDatos = (datos) => {
+        // Verificar si datos es un array antes de llamar a filter
+        if (!Array.isArray(datos)) {
+          // Si no es un array, no se puede filtrar, así que regresamos los datos sin cambios
+          return datos;
         }
-      }
-
-         useEffect(() => {
-          
-          const fetchVisitasPorRut = async () => {
-            try {
-              if (rut.length > 8) {
-                const response = await clienteAxios.get(`/usuarios/comparar/${rut}`);
-                console.log(response)
-
-                if (response.status === 200) {
-                  setVisitas([response.data.visita[0]]);
-                  return 0;
-                } else {
-                  buscarApoderados(rut);
-                }
-              }
-            } catch (errorUsuarios) {
-              console.error('Error al cargar visitas desde usuarios:', errorUsuarios);
-              buscarApoderados(rut)
-
-              setVisitas([]);
-              // Maneja el error si la primera solicitud no tiene éxito
-            }
-          };
       
-          if (rut !== '') {
-            fetchVisitasPorRut(); // Llama a la función para obtener las visitas basadas en el RUT
-            setVisitas([]);
-          }else{
-            setVisitas([]);
-          }
-        }, [rut]);
+        // Luego, procedemos a filtrar si datos es un array válido
+        return datos.filter((item) => {
+          // Filtrar por rut, nombre o apellido
+          return (
+            item.rut.toLowerCase().includes(busqueda.toLowerCase()) ||
+            item.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+            item.apellido.toLowerCase().includes(busqueda.toLowerCase())
+          );
+        });
+      };
+      
 
 
-      const compararRut2 = async () => {
-            if(!UseRegexRut(rut)){
-                console.log(" rut mal ingresado ")
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Error',
-                  text: 'Rut mal ingresado'
-                })
-                return 0 }
+
+      const cargarDatos = async () => {
+        try {
+            if (tipoSeleccionado === 'visita') {
+                const response = await clienteAxios.get('usuarios/getall');
+                setVisitass(response.data.visitas);
+            } else if (tipoSeleccionado === 'apoderado') {
+                const response = await clienteAxios.get('apoderados/getall');
+                setApoderadoss(response.data.apoderados);
+            }
+        } catch (error) {
+            console.error('Error al cargar datos:', error);
+        }
+    };
+
+    useEffect(() => {
+        cargarDatos();
+    }, [tipoSeleccionado]);
+    const handleChangeTipo = (event) => {
+      setTipoSeleccionado(event.target.value); // Actualiza el estado con la selección del usuario
+  };
+
+  const handleSearchChange = (e) => {
+    const nuevoTermino = e.target.value;
+    setBusqueda(nuevoTermino);
+
+    if (nuevoTermino === "") {
+        // Restablecer los datos originales cuando el término de búsqueda está vacío
+        if (tipoSeleccionado === 'visita') {
+            if (data && data.visitas) {
+                setVisitass(data.visitas);
+            }
+        } else if (tipoSeleccionado === 'apoderado') {
+            if (data && data.apoderados) {
+                setApoderadoss(data.apoderados);
+            }
+        }
+    } else {
+        // Realizar la búsqueda y filtrar los datos según el término de búsqueda
+        if (tipoSeleccionado === 'visita') {
+            const visitasFiltradas = filtrarDatos(visitass);
+            setVisitass(visitasFiltradas);
+        } else if (tipoSeleccionado === 'apoderado') {
+            const apoderadosFiltrados = filtrarDatos(apoderadoss);
+            setApoderadoss(apoderadosFiltrados);
+        }
+    }
+};
+
+      const compararRut2 = async (e) => {
+
 
         try{
           let response
           console.log(evento.codigo_evento)
             try{
-             response = await clienteAxios.get(`/personas/getonebyvisita/${visitas[0].id_visita}`);
+              if(tipoSeleccionado=='visita'){
+             response = await clienteAxios.get(`/personas/getonebyvisita/${e}`);
              console.log(response)
+            }else{
+                response = await clienteAxios.get(`/personas/getonebyapoderado/${e}`);
 
+              }
 
-            }catch{
-               response = await clienteAxios.get(`/personas/getonebyapoderado/${visitas[0].id_apoderado}`);
-               console.log(response)
+            }catch(errror){
+               console.log(error)
 
             }
 
@@ -174,7 +197,7 @@ const Asistencia =({ data }) => {
              Swal.fire({
               icon: 'error',
               title: 'Oops...',
-              text: 'Persona no admitida',
+              text: 'Persona ya registrada',
               footer: 'Comunicarse con administración'
             })
              
@@ -202,7 +225,6 @@ return (
       /></HStack>
     <Stack>
             <center>
-            <Heading as="h1" size="xl" className="header" textAlign="center" mt="10">Ingrese RUN </Heading>
             <Heading as="h1" size="xl" className="header" textAlign="center" mt="10">{evento.tema} </Heading>
 
             </center>
@@ -263,51 +285,67 @@ return (
         <Stack>
         
             <HStack style={{marginTop:40}}>
-        <Input  style={{fontSize:18, width:250, height:50}}id="rut" value={rut} onChange={handleChange} name="Rut" placeholder="Sin puntos y con guión" type="text" />
-
-        <Button style={{marginLeft:30}} colorScheme="blue" onClick={compararRut2} >
-        Registrar Asistencia </Button>
+            <Input
+                type="text"
+                className="form-control"
+                placeholder="Buscar por rut, nombre o apellido"
+                value={busqueda}
+                onChange={handleSearchChange}
+            />
+       
         
-
+   <Select value={tipoSeleccionado} onChange={handleChangeTipo}>
+                <option value="">Seleccione tipo</option>
+                <option value="visita">Visita</option>
+                <option value="apoderado">Apoderado</option>
+            </Select>
        
             </HStack>
             </Stack>
             <Container maxW="container.xl" mt={10}>
             <Table variant="simple">
-            <Thead>
-              <Tr>
-              <Td fontWeight={"bold"}>Rut</Td>
-                <Td fontWeight={"bold"}>Nombre</Td>
-                <Td fontWeight={"bold"}>Apellido</Td>
-                <Td fontWeight={"bold"}>Teléfono</Td>
-
-              </Tr>
-            </Thead>
-            <Tbody border={"5"}>           {visitas && visitas.length  > 0 ? (
-            visitas.map((Visita,idx)=>
-              (
-                <Tr key={idx}>
-             <Td >{Visita.rut}</Td>
-             <Td >{Visita.nombre}</Td>
-             <Td>{Visita.apellido}</Td>
-             <Td>{Visita.telefono}</Td>
-
-            
-
-     </Tr>
-)
-)
-): (
-  <Tr>
-    <Td colSpan={9} textAlign="center">
-      No hay coincidencias.
-    </Td>
-  </Tr>
-)
-}
-
-</Tbody>
-          </Table>
+                <Thead>
+                    <Tr>
+                        <Td>Rut</Td>
+                        <Td>Nombre</Td>
+                        <Td>Apellido</Td>
+                        <Td>Teléfono</Td>
+                        <Td>Registrar</Td>
+                    </Tr>
+                </Thead>
+                <Tbody>
+                    {/* Renderizar las visitas o apoderados según la selección del usuario */}
+                    {tipoSeleccionado === 'visita' ? (
+                        visitass.map((visita, idx) => (
+                            <Tr key={idx}>
+                                <Td>{visita.rut}</Td>
+                                <Td>{visita.nombre}</Td>
+                                <Td>{visita.apellido}</Td>
+                                <Td>{visita.telefono}</Td>
+                                <Td>
+                                    <IconButton icon={<CheckIcon />} colorScheme="green"  onClick={()=>compararRut2(visita.id_visita)} />
+                                </Td>
+                            </Tr>
+                        ))
+                    ) : tipoSeleccionado === 'apoderado' ? (
+                        apoderadoss.map((apoderado, idx) => (
+                            <Tr key={idx}>
+                                <Td>{apoderado.rut}</Td>
+                                <Td>{apoderado.nombre}</Td>
+                                <Td>{apoderado.apellido}</Td>
+                                <Td>{apoderado.telefono}</Td>
+                                <Td>
+                                    <IconButton icon={<CheckIcon />} colorScheme="green"  onClick={()=>compararRut2(apoderado.id_apoderado)} />
+                                </Td>
+                            </Tr>
+                        ))
+                    ) : (
+                        <Tr>
+                            <Td colSpan={5} textAlign="center">Seleccione un tipo para mostrar los datos</Td>
+                        </Tr>
+                    )}
+                </Tbody>
+            </Table>
     
 
     </Container>

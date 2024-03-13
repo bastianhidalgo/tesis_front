@@ -17,8 +17,9 @@ import {  Drawer,
   ModalCloseButton,Menu} from '@chakra-ui/react';
 import Swal   from 'sweetalert2'
 import {HamburgerIcon} from '@chakra-ui/icons'
-import { fechaSplit2 } from '../../Components/util';
+import { fechaSplit2 ,fechaSplit} from '../../Components/util';
 import { format } from 'date-fns';
+import {InputForm} from '../../Components/InputForm'
 
 function Apoderado({ serverDateTime }) {
   const [horaactual, setHoraactual] = useState('');
@@ -30,6 +31,16 @@ function Apoderado({ serverDateTime }) {
       fechaIngreso: '',
       personaId:''
     })
+    const [personaSeleccionada, setPersonaSeleccionada] = useState(null);
+    const [isIngresarModalOpen, setIsIngresarModalOpen] = useState(false);
+    const handlePersonaSeleccionada = (visita) => {
+      console.log(visita)
+      setPersonaSeleccionada(visita);
+      onOpenIngresarModal();
+    };
+    const onOpenIngresarModal = () => {
+      setIsIngresarModalOpen(true);
+    };
     const [apoderados, setApoderados]= useState([{
         id_apoderado:'',
         rut:'',
@@ -55,6 +66,16 @@ function Apoderado({ serverDateTime }) {
         const { isOpen, onOpen, onClose } = useDisclosure()
         const router = useRouter()
         const [modalStates, setModalStates] = useState([]); 
+        
+        
+        const handleChangeMotivo = (e) => {
+          setIngreso({
+            ...ingreso,
+            motivo: e.target.value
+          });
+        };
+        
+        
         const getApoderados = async () => {
           try {
             const response = await clienteAxios.get("/apoderados/getall");
@@ -252,7 +273,9 @@ function Apoderado({ serverDateTime }) {
             setModalStates2(modalStates2.map(() => false));
           };
 
-          const RegistrarVisita = async (idVisita) => {
+          const RegistrarApoderado = async (personaSeleccionadaId) => {
+            onCloseIngresarModal()
+
             Swal.fire({
               title: '¿Seguro?',
               icon: 'warning',
@@ -265,7 +288,7 @@ function Apoderado({ serverDateTime }) {
                 // Obtener información de la visita
 
 
-                const response = await clienteAxios.get(`/personas/getonebyapoderado/${idVisita}`);
+                const response = await clienteAxios.get(`/personas/getonebyapoderado/${personaSeleccionadaId}`);
                 console.log(response)
 
                 const visita = response.data.persona[0];
@@ -281,23 +304,38 @@ function Apoderado({ serverDateTime }) {
                 const formattedDateTime = format(hora, "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
                 setHoraactual(formattedDateTime)
                 
-                ingreso.fechaIngreso=formattedDateTime
-                ingreso.personaId=visita.id_persona
-              console.log(ingreso)
+                const nuevoIngreso = {
+                  fechaIngreso: formattedDateTime,
+                  personaId: visita.id_persona,
+                  motivo: ingreso.motivo // Utiliza el valor actualizado de ingreso.motivo
+                };
+              if((formattedDateTime>=visita.fecha_inicio) && (formattedDateTime<=`${fechaSplit(visita.fecha_termino)}T23:59:59.999Z`)){
 
-                // Crear una nueva entrada en la tabla de ingresos
-                const nuevoIngreso = await clienteAxios.post("/ingresos/create", ingreso);
+                const response = await clienteAxios.post("/ingresos/create", nuevoIngreso);
+                console.log(response)
+
                 Swal.fire(
                   'Registrada!',
                   'Apoderado ha sido registrada',
                   'success'
                 );
           
-                getApoderados(); // Actualizar la lista de visitas después del registro
-              }
+                getApoderados();} // Actualizar la lista de visitas después del registro
+              else{
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Oops...',
+                  text: 'Error al ingresar al apoderado.',
+                  footer: ' Revisar fechas de inicio y de término'
+                })
+              }}
             });
           };
-
+         
+          const onCloseIngresarModal = () => {
+            setIsIngresarModalOpen(false);
+            setPersonaSeleccionada(null); // Reiniciar el rol seleccionado cuando se cierra el modal
+          };
 
     return(
 
@@ -471,7 +509,28 @@ function Apoderado({ serverDateTime }) {
                     </ModalContent>
                 </Modal></Td>
              <Td>
-             <Button  colorScheme='teal'  onClick={()=>RegistrarVisita(Apoderado.id_apoderado)}>Registrar</Button>
+             <Button colorScheme='teal'  onClick={() => handlePersonaSeleccionada(Apoderado)}>Registrar</Button>
+             <Modal  isOpen={isIngresarModalOpen} onClose={onCloseIngresarModal}>
+      <ModalOverlay />
+      <ModalContent>
+      <ModalHeader>Datos del ingreso</ModalHeader>
+      <ModalCloseButton />
+      <ModalBody pb={6}>
+           
+      <InputForm label="Ingrese Motivo" handleChange={handleChangeMotivo} name="descripcion" placeholder="Nombre rol" type="text" value={personaSeleccionada ? personaSeleccionada.motivo : ''}/>
+               
+      </ModalBody>
+
+      <ModalFooter>
+      <Button style={{marginRight:20}} colorScheme='blue'           
+       onClick={() => {RegistrarApoderado(personaSeleccionada.id_apoderado);
+    
+  }}>Registrar</Button>
+
+          <Button colorScheme='blue' onClick={onCloseIngresarModal}>Cerrar</Button>
+      </ModalFooter>
+      </ModalContent>
+  </Modal>
             </Td>
              <Td>
 

@@ -19,13 +19,15 @@ import Swal   from 'sweetalert2'
 import {HamburgerIcon} from '@chakra-ui/icons'
 import { fechaSplit2 } from '../../Components/util';
 import { format } from 'date-fns';
-
+import {InputForm,TextForm} from '../../Components/InputForm'
 function Curso( ) {
     const [modalAlumnos, setModalAlumnos] = useState([]);
     const [modalEventos, setModalEventos] = useState([]);
     const [cursoSeleccionado, setCursoSeleccionado] = useState('');
+    const [isCreateCursoModalOpen, setIsCreateCursoModalOpen] = useState(false);
 
       const [cursitos, setCursitos]= useState([]);
+      const [errorDescripcion, setErrorDescripcion] = useState('');
 
     const [cursos, setCursos]= useState([{
        id_curso:'',
@@ -61,6 +63,46 @@ function Curso( ) {
         const [modalStates, setModalStates] = useState([]); 
         const [modalStates2, setModalStates2] = useState([]); 
 
+
+        const handleCreateCursoModalOpen = () => {
+          setIsCreateCursoModalOpen(true);
+        };
+      
+        const handleCreateCursoModalClose = () => {
+          setIsCreateCursoModalOpen(false);
+        };
+
+        const submitCurso= async () => {
+       
+          try{
+             
+               const response = await clienteAxios.post("/cursos/create",cursoNuevo);
+    
+             
+            if(response.status==200){
+              console.log("Curso creado")
+              Swal.fire({
+                  icon:'success',
+                  title:'Excelente!',
+                  showConfirmButton: true,
+                  text: 'Curso registrado' 
+              })
+              handleCreateCursoModalClose()
+              router.reload()
+    
+              }
+          }catch(error){
+              console.log("error al crear el curso")
+              Swal.fire({
+                  icon: 'error',
+                  title: 'Oops...',
+                  text: 'Error al crear el curso',
+                  footer: 'Comunicarse con administración'
+                })
+    
+              }
+    
+        }
         const getCursos = async () => {
           try {
               const responseCursos = await clienteAxios.get("/cursos/getall");
@@ -156,11 +198,16 @@ function Curso( ) {
             }).then(async(result) => {
               if (result.isConfirmed) {
 
+                try{
                 await clienteAxios.delete(`/cursos/delete/${e}`)
+
+                }catch(error){
+                  console.error(error)
+                }
 
                 Swal.fire(
                   'Borrado!',
-                  'Visita ha sido borrada',
+                  'Curso ha sido borrado',
                   'success'
                 )
                 getCursos();
@@ -189,8 +236,12 @@ function Curso( ) {
             setModalStates2(modalStates2.map(() => false));
           };
 
-
-
+          const handleChangeCurso=(e) =>{
+            setCursoNuevo({
+                ... cursoNuevo,
+                [e.target.name]: e.target.value
+            })
+          }
     return(
 
       <Container  maxW="container.xl" >
@@ -212,7 +263,35 @@ function Curso( ) {
       <Heading  as="h1" size="xl" className="header" textAlign="center"mt="10" >Cursos CSPN Concepción</Heading>
       </Box>
 
+      <Button   colorScheme='blue' mt="10"onClick={handleCreateCursoModalOpen}>Crear curso</Button>
+      <Modal  isOpen={isCreateCursoModalOpen} onClose={handleCreateCursoModalClose}>
+      <ModalOverlay />
+      <ModalContent>
+      <ModalHeader>Datos del curso</ModalHeader>
+      <ModalCloseButton />
+      <ModalBody pb={6}>
+           
+      <InputForm label="Ingrese nombre" isInvalid={errorDescripcion !== ''} errors={errorDescripcion} handleChange={handleChangeCurso} name="nombre" placeholder="Nombre" type="text" value={cursos.nombre}/>
+      <TextForm label="Ingrese descripción" isInvalid={errorDescripcion !== ''} errors={errorDescripcion} handleChange={handleChangeCurso} name="descripcion" placeholder="Descripción" type="text" value={cursos.descripcion}/>
 
+      </ModalBody>
+
+      <ModalFooter>
+      <Button style={{marginRight:20}} colorScheme='blue'            onClick={() => {
+   if (!cursoNuevo.descripcion) {
+      setErrorDescripcion('Por favor, el nombre del rol es requerido.');
+    } else {
+     
+      setErrorDescripcion('');
+      
+      submitCurso();
+    }
+  }}>Agregar</Button>
+
+          <Button colorScheme='blue' onClick={handleCreateCursoModalClose}>Cerrar</Button>
+      </ModalFooter>
+      </ModalContent>
+  </Modal>
 
       <Drawer
         colorScheme='teal' 
@@ -299,6 +378,8 @@ function Curso( ) {
                 <Td fontWeight={"bold"}>Descripción</Td>
                 <Td fontWeight={"bold"}>Ver Alumnos</Td>
                 <Td fontWeight={"bold"}>Ver Eventos</Td>
+                <Td fontWeight={"bold"}>Modificar</Td>
+                <Td fontWeight={"bold"}>Eliminar</Td>
 
               </Tr>
             </Thead>
@@ -311,86 +392,16 @@ function Curso( ) {
              <Td >{Curso.nombre}</Td>
              <Td >{Curso.descripcion}</Td>
              <Td>
+             <Button colorScheme="blue"   onClick={()=>router.push(`./listadoCurso/${Curso.id_curso}`)}>Alumnos</Button>
 
-             <Button colorScheme="blue" onClick={() => openModal(idx)}>Alumnos</Button>
-
-                <Modal closeOnOverlayClick={false} isOpen={modalStates[idx]} onClose={closeModal}>
-                    <ModalOverlay />
-                    <ModalContent>
-                    <ModalHeader>                    <Heading size="md">Alumno(s) asociados al curso {Curso.nombre}:</Heading>
-                    </ModalHeader>
-                    <ModalCloseButton />
-                    <ModalBody pb={6}>
-                    
-                    
-
-                    <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Td fontWeight={"bold"}>Rut</Td>
-                <Td fontWeight={"bold"}>Nombre</Td>
-                <Td fontWeight={"bold"}>Apellido</Td>
-
-              </Tr>
-            </Thead>
-            <Tbody border={"5"}>
-  
-            {modalAlumnos && modalAlumnos.length  > 0 ? (
-            modalAlumnos.map((Alumno,idx)=>
-              (
-                <Tr key={idx}>
-             <Td >{Alumno.rut}</Td>
-             <Td >{Alumno.nombre}</Td>
-             <Td >{Alumno.apellido}</Td>
-
-             </Tr>)))
-             : (
-              <Tr>
-                <Td colSpan={9} textAlign="center">
-                  No hay alumnos registrados.
-                </Td>
-              </Tr>
-            )
-}
-             </Tbody>
-          </Table>
-
-
-
-
-                    </ModalBody>
-
-                    <ModalFooter>
-                        <Button onClick={closeModal}>Cerrar</Button>
-                    </ModalFooter>
-                    </ModalContent>
-                </Modal></Td>
-                <Td>
-
-<Button colorScheme="green" onClick={() => openModal2(idx)}>Eventos</Button>
-
-   <Modal closeOnOverlayClick={false} isOpen={modalStates2[idx]} onClose={closeModal2}>
-       <ModalOverlay />
-       <ModalContent>
-       <ModalHeader>                    <Heading size="md">Eventos asociados al curso:</Heading>
-       </ModalHeader>
-       <ModalCloseButton />
-       <ModalBody pb={6}>
-       {modalEventos.map((evento, idxEvento) => (
-           <VStack key={idxEvento} align="stretch" mt={4}>
-           <Text>Tema: {evento.tema} </Text>
-           <Text>Descripción: {evento.descripcion}</Text>
-           </VStack>
-       ))}
-       </ModalBody>
-
-       <ModalFooter>
-           <Button onClick={closeModal2}>Cerrar</Button>
-       </ModalFooter>
-       </ModalContent>
-   </Modal></Td>
+             </Td>
+                <Td><Button colorScheme="teal"   onClick={()=>router.push(`./listadoEventos/${Curso.id_curso}`)}>Eventos</Button>
+</Td>
+   <Td><Button colorScheme="green"   onClick={()=>router.push(`./modificar/${Curso.id_curso}`)}>Modificar</Button>
+</Td>
             
-             
+             <Td><Button colorScheme="red" onClick={()=>deleteCurso(Curso.id_curso)} style={{marginLeft:10}}  >Eliminar</Button>
+</Td>
              
 
      </Tr>
